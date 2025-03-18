@@ -142,6 +142,7 @@ namespace Loader
                     ZipFile.ExtractToDirectory(target, targetDir);
 
                 File.Copy($"{targetDir}/{fileInArchive}", IPFSExePath);
+
             }
             finally
             {
