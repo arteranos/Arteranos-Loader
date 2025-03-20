@@ -5,6 +5,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Net.Http;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -60,7 +61,7 @@ namespace Loader
             Application.Exit();
         }
 
-        private static HttpClient HttpClient = new();
+        private static readonly HttpClient HttpClient = new();
 
         private static void Initialize()
         {
@@ -95,23 +96,53 @@ namespace Loader
             if(!Directory.Exists(ProgDataDir)) Directory.CreateDirectory(ProgDataDir);
         }
 
-        private static Task WebDownloadFile(string source, string target)
+        private static Action<long, long> ReportProgress(string pattern, int frompercent, int topercent)
         {
-            return Task.Run(async () =>
+            void ReportProgressFunc(long actual, long total)
             {
-                long totalBytes = 0;
-                if (File.Exists(target)) File.Delete(target);
+                float normalized = (float)actual / total;
+                string msg = string.Format(pattern, Magnitude(actual), Magnitude(total));
+                int progress = (int)(frompercent + ((float)topercent - frompercent) * normalized);
 
-                HttpClient.Timeout = TimeSpan.FromSeconds(60);
-                using HttpResponseMessage response = await HttpClient.GetAsync(source).ConfigureAwait(false);
-                response.EnsureSuccessStatusCode();
-                totalBytes = response.Content.Headers.ContentLength ?? -1;
-                byte[] binary = await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
-                using Stream s = File.Create(target);
-                s.Write(binary, 0, binary.Length);
-                s.Flush();
-                s.Close();
-            });
+                splash.Progress = progress;
+                splash.ProgressTxt = msg;
+            }
+
+            static string Magnitude(long value, string suffix = "B")
+            {
+                float val = value;
+                string[] prefixes = { "", "k", "M", "G", "T", "E" };
+                for (int i = 0; i < prefixes.Length - 1; i++)
+                {
+                    if (val < 900) return string.Format("{0:F1} {1}{2}", val, prefixes[i], suffix);
+                    // SI numbers prefixes, sorry, no powers of two...
+                    val /= 1000;
+                }
+                return string.Format("{0:F1} {1}{2}", val, prefixes[prefixes.Length-1], suffix);
+            }
+
+
+            return (actual, total) => ReportProgressFunc(actual, total);
+        }
+
+        private static async Task WebDownloadFileAsync(string source, string target, string what, int from, int to)
+        {
+            if (File.Exists(target)) File.Delete(target);
+
+            HttpClient.Timeout = TimeSpan.FromSeconds(60);
+
+            using Stream file = File.Create(target);
+
+            try
+            {
+                await HttpClient.DownloadAsync(source, file, ReportProgress($"{what} ({{0}} of {{1}})", from, to));
+            }
+            catch (Exception)
+            {
+                File.Delete(target);
+                throw;
+            }
+
         }
 
         private static async Task WebDownloadIPFSExe(string url, string fileInArchive)
@@ -130,11 +161,7 @@ namespace Loader
 
             try
             {
-                splash.ProgressTxt = "Downloading IPFS from web...";
-
-                await WebDownloadFile(url, target).ConfigureAwait(false);
-
-                splash.Progress = 10;
+                await WebDownloadFileAsync(url, target, "D/l IPFS from web", 0, 10).ConfigureAwait(false);
 
                 splash.ProgressTxt = "Extracting IPFS from web...";
 
