@@ -6,6 +6,17 @@ using System.Threading.Tasks;
 
 namespace Loader
 {
+    public static class StringExtensions
+    {
+        public static int CommonStart(this string s1, string s2)
+        {
+            int full = Math.Min(s1.Length, s2.Length);
+            for (int i = 0; i < full; i++) if (s1[i] != s2[i]) return i;
+
+            return full;
+        }
+    }
+
     public static class StreamExtensions
     {
         public static async Task CopyToAsync(this Stream source, Stream destination, int bufferSize, Action<long> progress = null, CancellationToken cancellationToken = default)
@@ -24,9 +35,9 @@ namespace Loader
             var buffer = new byte[bufferSize];
             long totalBytesRead = 0;
             int bytesRead;
-            while ((bytesRead = await source.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false)) != 0)
+            while ((bytesRead = await source.ReadAsync(buffer, cancellationToken).ConfigureAwait(false)) != 0)
             {
-                await destination.WriteAsync(buffer, 0, bytesRead, cancellationToken).ConfigureAwait(false);
+                await destination.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken).ConfigureAwait(false);
                 totalBytesRead += bytesRead;
                 progress?.Invoke(totalBytesRead);
             }
@@ -38,16 +49,16 @@ namespace Loader
         public static async Task DownloadAsync(this HttpClient client, string requestUri, Stream destination, Action<long, long> progress = null, CancellationToken cancellationToken = default)
         {
             // Get the http headers first to examine the content length
-            using HttpResponseMessage response = await client.GetAsync(requestUri, HttpCompletionOption.ResponseHeadersRead);
+            using HttpResponseMessage response = await client.GetAsync(requestUri, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
             long? contentLength = response.Content.Headers.ContentLength;
 
-            using Stream download = await response.Content.ReadAsStreamAsync();
+            using Stream download = await response.Content.ReadAsStreamAsync(cancellationToken);
 
             // Ignore progress reporting when no progress reporter was 
             // passed or when the content length is unknown
             if (progress == null || !contentLength.HasValue)
             {
-                await download.CopyToAsync(destination);
+                await download.CopyToAsync(destination, cancellationToken);
                 return;
             }
 

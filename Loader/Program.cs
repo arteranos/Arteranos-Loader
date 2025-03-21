@@ -21,14 +21,17 @@ namespace Loader
         private const string KUBO_ARCH_WIN64 = "windows-amd64";
         private const string KUBO_ARCH_LINUX64 = "linux-amd64";
 
+        private static readonly string ARTERANOS_WEBDL_ROOT = "https://github.com/arteranos/Arteranos/releases/download/v3.0.0-pre";
+
         public static bool IsOnLinux { get; private set; } = false;
         public static string ProgDataDir { get; private set; } = null;
         public static string IPFSExeName { get; private set; } = null;
         public static string IPFSExePath { get; private set; } = null;
 
 
-        private static string ipfsArchiveSource;
-        private static string ipfsExeInArchive;
+        private static string ipfsArchiveSource = null;
+        private static string ipfsExeInArchive = null;
+        private static string osArchitecture = null;
 
 
         private static Splash splash = null;
@@ -44,6 +47,8 @@ namespace Loader
 
             Initialize();
 
+            splash = new();
+
             Application.Run(splash);
         }
 
@@ -51,7 +56,9 @@ namespace Loader
         {
             await WebDownloadIPFSExe(ipfsArchiveSource, ipfsExeInArchive).ConfigureAwait(false);
 
-            for (int i = 2; i < 10; i++)
+            await WebDownloadArteranos().ConfigureAwait(false);
+
+            for (int i = 4; i < 10; i++)
             {
                 splash.Progress = i * 10;
 
@@ -65,8 +72,6 @@ namespace Loader
 
         private static void Initialize()
         {
-            splash = new();
-
             IsOnLinux = Environment.OSVersion.Platform == PlatformID.Unix;
 
             string userHomeDir = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
@@ -78,6 +83,7 @@ namespace Loader
 
                 ipfsArchiveSource = $"{KUBO_EXECUTABLE_ROOT}_{KUBO_ARCH_LINUX64}.tsr.gz";
                 ipfsExeInArchive = $"/{IPFSExeName}";
+                osArchitecture = "Linux-amd64";
             }
             else
             {
@@ -87,6 +93,7 @@ namespace Loader
 
                 ipfsArchiveSource = $"{KUBO_EXECUTABLE_ROOT}_{KUBO_ARCH_WIN64}.zip";
                 ipfsExeInArchive = $"/kubo/{IPFSExeName}";
+                osArchitecture = "Win-amd64";
             }
 
             Console.WriteLine($"Program Dir: {ProgDataDir}");
@@ -111,14 +118,14 @@ namespace Loader
             static string Magnitude(long value, string suffix = "B")
             {
                 float val = value;
-                string[] prefixes = { "", "k", "M", "G", "T", "E" };
+                string[] prefixes = ["", "k", "M", "G", "T", "E"];
                 for (int i = 0; i < prefixes.Length - 1; i++)
                 {
                     if (val < 900) return string.Format("{0:F1} {1}{2}", val, prefixes[i], suffix);
                     // SI numbers prefixes, sorry, no powers of two...
                     val /= 1000;
                 }
-                return string.Format("{0:F1} {1}{2}", val, prefixes[prefixes.Length-1], suffix);
+                return string.Format("{0:F1} {1}{2}", val, prefixes[^1], suffix);
             }
 
 
@@ -167,6 +174,8 @@ namespace Loader
 
                 if (archiveFormat == ".zip")
                     ZipFile.ExtractToDirectory(target, targetDir);
+                else if (archiveFormat == ".tar.gz")
+                    await Utils.UnTarGzDirectoryAsync(target, targetDir).ConfigureAwait(false);
 
                 File.Copy($"{targetDir}/{fileInArchive}", IPFSExePath);
 
@@ -176,6 +185,32 @@ namespace Loader
                 if(File.Exists(target)) File.Delete(target);
                 if(Directory.Exists(targetDir)) Directory.Delete(targetDir, true);
                 splash.Progress = 20;
+            }
+        }
+
+        private static async Task WebDownloadArteranos()
+        {
+            string flavor = "desktop";
+            string arteranosRoot = $"{flavor}-{osArchitecture}";
+            string arteranosURL = $"{ARTERANOS_WEBDL_ROOT}/{arteranosRoot}.tar.gz";
+
+            string arteranosDir = $"{ProgDataDir}/{arteranosRoot}";
+            string arteranosArchiveFile = $"{ProgDataDir}/{arteranosRoot}.tar.gz";
+
+            if (Directory.Exists(arteranosDir)) return;
+
+            try
+            {
+                await WebDownloadFileAsync(arteranosURL, arteranosArchiveFile, "D/l Arteranos from web", 20, 30).ConfigureAwait(false);
+
+                splash.ProgressTxt = "Extracting Arteranos from web...";
+
+                await Utils.UnTarGzDirectoryAsync(arteranosDir, arteranosArchiveFile).ConfigureAwait(false);
+            }
+            finally
+            {
+                if (File.Exists(arteranosArchiveFile)) File.Delete(arteranosArchiveFile);
+                splash.Progress = 40;
             }
         }
     }

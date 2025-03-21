@@ -1,0 +1,3 @@
+[submodule "IPFS_RPC_API/net-ipfs-code"]
+	path = IPFS_RPC_API/net-ipfs-code
+	url = git@github.com:arteranos/net-ipfs-code.git

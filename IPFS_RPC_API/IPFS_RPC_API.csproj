@@ -1,0 +1,144 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<LangVersion>9.0</LangVersion>
+	</PropertyGroup>
+
+	<PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+	<ItemGroup>
+	  <None Remove="net-ipfs-code\.git" />
+	  <None Remove="net-ipfs-code\Core.meta" />
+	  <None Remove="net-ipfs-code\Core\Base32.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\Base32z.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\Base36.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\Base58.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\Base64NoPad.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\Base64Url.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\Cid.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\CoreApi.meta" />
+	  <None Remove="net-ipfs-code\Core\CoreApi\AddFileOptions.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\CoreApi\BandwidthData.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\CoreApi\BitswapData.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\CoreApi\BitswapLedger.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\CoreApi\FileStat.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\CoreApi\IBitswapApi.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\CoreApi\IBlockApi.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\CoreApi\IBlockRepository.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\CoreApi\IBootstrapApi.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\CoreApi\IConfigApi.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\CoreApi\IContentRouting.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\CoreApi\ICoreApi.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\CoreApi\IDagApi.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\CoreApi\IDhtApi.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\CoreApi\IDnsApi.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\CoreApi\IFileSystemApi.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\CoreApi\IGenericApi.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\CoreApi\IKeyApi.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\CoreApi\IMfsApi.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\CoreApi\INameApi.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\CoreApi\IObjectApi.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\CoreApi\IPeerRouting.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\CoreApi\IPinApi.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\CoreApi\IPubSubApi.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\CoreApi\IStatsApi.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\CoreApi\ISwarmApi.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\CoreApi\IValueStore.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\CoreApi\MfsWriteOptions.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\CoreApi\ObjectStat.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\CoreApi\PingResult.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\CoreApi\RepositoryData.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\CoreApi\TransferProgress.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\DagLink.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\DagNode.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\Duration.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\HexString.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\icon.png.meta" />
+	  <None Remove="net-ipfs-code\Core\IDataBlock.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\IFileSystemLink.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\IFileSystemNode.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\IKey.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\IMerkleLink.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\IMerkleNode.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\IPublishedMessage.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\MultiAddress.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\MultiBase.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\MultiCodec.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\MultiHash.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\NamedContent.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\NetworkProtocol.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\Peer.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\ProtobufHelper.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\Registry.meta" />
+	  <None Remove="net-ipfs-code\Core\Registry\Codec.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\Registry\HashingAlgorithm.cs.meta" />
+	  <None Remove="net-ipfs-code\Core\Registry\MultiBaseAlgorithm .cs.meta" />
+	  <None Remove="net-ipfs-code\Core\VarInt.cs.meta" />
+	  <None Remove="net-ipfs-code\Cryptography.meta" />
+	  <None Remove="net-ipfs-code\Cryptography\BouncyDigest.cs.meta" />
+	  <None Remove="net-ipfs-code\Cryptography\DoubleSha256.cs.meta" />
+	  <None Remove="net-ipfs-code\Cryptography\IdentityHash.cs.meta" />
+	  <None Remove="net-ipfs-code\Cryptography\Keccak.cs.meta" />
+	  <None Remove="net-ipfs-code\Cryptography\KeccakManaged.cs.meta" />
+	  <None Remove="net-ipfs-code\Cryptography\KeyPairs.cs.meta" />
+	  <None Remove="net-ipfs-code\Cryptography\PrivateKey.cs.meta" />
+	  <None Remove="net-ipfs-code\Cryptography\Proto.meta" />
+	  <None Remove="net-ipfs-code\Cryptography\Proto\Keys.cs.meta" />
+	  <None Remove="net-ipfs-code\Cryptography\PublicKey.cs.meta" />
+	  <None Remove="net-ipfs-code\Http.meta" />
+	  <None Remove="net-ipfs-code\HttpEx.meta" />
+	  <None Remove="net-ipfs-code\HttpEx\ExtendedApi.meta" />
+	  <None Remove="net-ipfs-code\HttpEx\ExtendedApi\IpfsClientEx.cs.meta" />
+	  <None Remove="net-ipfs-code\HttpEx\ExtendedApi\NameExApi.cs.meta" />
+	  <None Remove="net-ipfs-code\HttpEx\ExtendedApi\RoutingApi.cs.meta" />
+	  <None Remove="net-ipfs-code\HttpEx\Interfaces.meta" />
+	  <None Remove="net-ipfs-code\HttpEx\Interfaces\IDaemonApi.cs.meta" />
+	  <None Remove="net-ipfs-code\HttpEx\Interfaces\IFileSystemExApi.cs.meta" />
+	  <None Remove="net-ipfs-code\HttpEx\Interfaces\INameExApi.cs.meta" />
+	  <None Remove="net-ipfs-code\HttpEx\Interfaces\IRoutingApi.cs.meta" />
+	  <None Remove="net-ipfs-code\HttpEx\IpfsClientEx.cs.meta" />
+	  <None Remove="net-ipfs-code\Http\Block.cs.meta" />
+	  <None Remove="net-ipfs-code\Http\CoreApi.meta" />
+	  <None Remove="net-ipfs-code\Http\CoreApi\BitswapApi.cs.meta" />
+	  <None Remove="net-ipfs-code\Http\CoreApi\BlockApi.cs.meta" />
+	  <None Remove="net-ipfs-code\Http\CoreApi\BlockRepositoryApi.cs.meta" />
+	  <None Remove="net-ipfs-code\Http\CoreApi\BootstrapApi.cs.meta" />
+	  <None Remove="net-ipfs-code\Http\CoreApi\ConfigApi.cs.meta" />
+	  <None Remove="net-ipfs-code\Http\CoreApi\DagApi.cs.meta" />
+	  <None Remove="net-ipfs-code\Http\CoreApi\DhtApi.cs.meta" />
+	  <None Remove="net-ipfs-code\Http\CoreApi\DnsApi.cs.meta" />
+	  <None Remove="net-ipfs-code\Http\CoreApi\FileSystemApi.cs.meta" />
+	  <None Remove="net-ipfs-code\Http\CoreApi\GenericApi.cs.meta" />
+	  <None Remove="net-ipfs-code\Http\CoreApi\KeyApi.cs.meta" />
+	  <None Remove="net-ipfs-code\Http\CoreApi\MfsApi.cs.meta" />
+	  <None Remove="net-ipfs-code\Http\CoreApi\NameApi.cs.meta" />
+	  <None Remove="net-ipfs-code\Http\CoreApi\ObjectApi.cs.meta" />
+	  <None Remove="net-ipfs-code\Http\CoreApi\PinApi.cs.meta" />
+	  <None Remove="net-ipfs-code\Http\CoreApi\PubSubApi.cs.meta" />
+	  <None Remove="net-ipfs-code\Http\CoreApi\StatsApi.cs.meta" />
+	  <None Remove="net-ipfs-code\Http\CoreApi\SwarmApi.cs.meta" />
+	  <None Remove="net-ipfs-code\Http\FileSystemLink.cs.meta" />
+	  <None Remove="net-ipfs-code\Http\FileSystemNode.cs.meta" />
+	  <None Remove="net-ipfs-code\Http\icon.png.meta" />
+	  <None Remove="net-ipfs-code\Http\IpfsClient.cs.meta" />
+	  <None Remove="net-ipfs-code\Http\MerkleNode.cs.meta" />
+	  <None Remove="net-ipfs-code\Http\PublishedMessage.cs.meta" />
+	  <None Remove="net-ipfs-code\Http\TrustedPeerCollection.cs.meta" />
+	  <None Remove="net-ipfs-code\Ipfs.asmdef" />
+	  <None Remove="net-ipfs-code\Ipfs.asmdef.meta" />
+	</ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Protobuf" Version="3.26.1" />
+    <PackageReference Include="Multiformats.Base" Version="2.0.2" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="Portable.BouncyCastle" Version="1.9.0" />
+    <PackageReference Include="protobuf-net" Version="2.4.8" />
+    <PackageReference Include="SharpZipLib" Version="1.4.2" />
+    <PackageReference Include="SimpleBase" Version="1.3.1" />
+  </ItemGroup>
+
+</Project>
