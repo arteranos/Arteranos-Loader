@@ -50,6 +50,9 @@ namespace Loader
         {
             // Get the http headers first to examine the content length
             using HttpResponseMessage response = await client.GetAsync(requestUri, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+
+            response.EnsureSuccessStatusCode();
+
             long? contentLength = response.Content.Headers.ContentLength;
 
             using Stream download = await response.Content.ReadAsStreamAsync(cancellationToken);

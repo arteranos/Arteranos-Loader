@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -15,19 +16,19 @@ namespace Loader
     {
         private const string COMPANYNAME = "arteranos";
 
-        private const string KUBO_VERSION = "v0.32.0";
 
-        private static readonly string KUBO_EXECUTABLE_ROOT = $"https://github.com/ipfs/kubo/releases/download/{KUBO_VERSION}/kubo_{KUBO_VERSION}";
         private const string KUBO_ARCH_WIN64 = "windows-amd64";
         private const string KUBO_ARCH_LINUX64 = "linux-amd64";
 
-        private static readonly string ARTERANOS_WEBDL_ROOT = "https://github.com/arteranos/Arteranos/releases/download/v3.0.0-pre";
 
         public static bool IsOnLinux { get; private set; } = false;
         public static string ProgDataDir { get; private set; } = null;
         public static string IPFSExeName { get; private set; } = null;
         public static string IPFSExePath { get; private set; } = null;
-
+        public static string ArteranosUserData {  get; private set; } = null;
+        public static string ArteranosFlavor { get; private set; } = null;
+        public static string ArteranosExePath { get; private set; } = null;
+        public static BootstrapData BootstrapData { get; private set; } = null;
 
         private static string ipfsArchiveSource = null;
         private static string ipfsExeInArchive = null;
@@ -45,7 +46,7 @@ namespace Loader
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
-            Initialize();
+            Initialize0();
 
             splash = new();
 
@@ -54,6 +55,10 @@ namespace Loader
 
         public static async Task LoaderWorkerThread()
         {
+            await WebDownloadBootstrap();
+
+            Initialize();
+
             await WebDownloadIPFSExe(ipfsArchiveSource, ipfsExeInArchive).ConfigureAwait(false);
 
             await WebDownloadArteranos().ConfigureAwait(false);
@@ -70,8 +75,10 @@ namespace Loader
 
         private static readonly HttpClient HttpClient = new();
 
-        private static void Initialize()
+        private static void Initialize0()
         {
+            HttpClient.Timeout = TimeSpan.FromSeconds(60);
+
             IsOnLinux = Environment.OSVersion.Platform == PlatformID.Unix;
 
             string userHomeDir = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
@@ -79,9 +86,29 @@ namespace Loader
             if (IsOnLinux)
             {
                 ProgDataDir = $"{userHomeDir}/{COMPANYNAME}/arteranos";
+            }
+            else
+            {
+                string pdroot = Environment.GetEnvironmentVariable("PROGRAMDATA");
+                ProgDataDir = $"{pdroot}/{COMPANYNAME}/arteranos";
+            }
+
+            if (!Directory.Exists(ProgDataDir)) Directory.CreateDirectory(ProgDataDir);
+        }
+
+        private static void Initialize()
+        {
+            IsOnLinux = Environment.OSVersion.Platform == PlatformID.Unix;
+
+            string userHomeDir = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+            string KUBO_EXECUTABLE_ROOT = $"{BootstrapData.KuboWebDlRoot}/{BootstrapData.KuboVersion}/kubo_{BootstrapData.KuboVersion}";
+
+            if (IsOnLinux)
+            {
+                ProgDataDir = $"{userHomeDir}/{COMPANYNAME}/arteranos";
                 IPFSExeName = "ipfs";
 
-                ipfsArchiveSource = $"{KUBO_EXECUTABLE_ROOT}_{KUBO_ARCH_LINUX64}.tsr.gz";
+                ipfsArchiveSource = $"{KUBO_EXECUTABLE_ROOT}_{KUBO_ARCH_LINUX64}.tar.gz";
                 ipfsExeInArchive = $"/{IPFSExeName}";
                 osArchitecture = "Linux-amd64";
             }
@@ -99,10 +126,9 @@ namespace Loader
             Console.WriteLine($"Program Dir: {ProgDataDir}");
             Console.WriteLine($"IPFS Exe   : {IPFSExeName}");
             Console.WriteLine($"IPFS source: {ipfsArchiveSource}");
-
-            if(!Directory.Exists(ProgDataDir)) Directory.CreateDirectory(ProgDataDir);
         }
 
+        #region Web Download File
         private static Action<long, long> ReportProgress(string pattern, int frompercent, int topercent)
         {
             void ReportProgressFunc(long actual, long total)
@@ -132,11 +158,11 @@ namespace Loader
             return (actual, total) => ReportProgressFunc(actual, total);
         }
 
-        private static async Task WebDownloadFileAsync(string source, string target, string what, int from, int to)
+        private static async Task WebDownloadFileAsync(string source, string target, string what, int to)
         {
-            if (File.Exists(target)) File.Delete(target);
+            int from = splash.Progress;
 
-            HttpClient.Timeout = TimeSpan.FromSeconds(60);
+            if (File.Exists(target)) File.Delete(target);
 
             using Stream file = File.Create(target);
 
@@ -150,6 +176,36 @@ namespace Loader
                 throw;
             }
 
+        }
+
+        #endregion
+
+        private static async Task WebDownloadBootstrap()
+        {
+            string bootstrapDataFile = $"{ProgDataDir}/BootstrapData.json";
+            if (File.Exists(bootstrapDataFile))
+            {
+                string json = File.ReadAllText(bootstrapDataFile);
+                BootstrapData = JsonConvert.DeserializeObject<BootstrapData>(json);
+            }
+            else
+            {
+                BootstrapData = new();
+                string json = JsonConvert.SerializeObject(BootstrapData, Formatting.Indented);
+                File.WriteAllText(bootstrapDataFile, json);
+            }
+
+            try
+            {
+                await WebDownloadFileAsync(BootstrapData.ArteranosBootstrapData, bootstrapDataFile, "D/l bootstrap data", 5);
+                string json = File.ReadAllText(bootstrapDataFile);
+                BootstrapData = JsonConvert.DeserializeObject<BootstrapData>(json);
+            }
+            catch
+            {
+                if (File.Exists(bootstrapDataFile)) File.Delete(bootstrapDataFile);
+                BootstrapData = new();
+            }
         }
 
         private static async Task WebDownloadIPFSExe(string url, string fileInArchive)
@@ -168,7 +224,7 @@ namespace Loader
 
             try
             {
-                await WebDownloadFileAsync(url, target, "D/l IPFS from web", 0, 10).ConfigureAwait(false);
+                await WebDownloadFileAsync(url, target, "D/l IPFS from web", 10).ConfigureAwait(false);
 
                 splash.ProgressTxt = "Extracting IPFS from web...";
 
@@ -190,18 +246,27 @@ namespace Loader
 
         private static async Task WebDownloadArteranos()
         {
-            string flavor = "desktop";
-            string arteranosRoot = $"{flavor}-{osArchitecture}";
-            string arteranosURL = $"{ARTERANOS_WEBDL_ROOT}/{arteranosRoot}.tar.gz";
+            ArteranosFlavor = "desktop";
+            string arteranosRoot = $"{ArteranosFlavor}-{osArchitecture}";
+            string arteranosURL = $"{BootstrapData.ArteranosWebDlRoot}/{arteranosRoot}.tar.gz";
 
             string arteranosDir = $"{ProgDataDir}/{arteranosRoot}";
             string arteranosArchiveFile = $"{ProgDataDir}/{arteranosRoot}.tar.gz";
+
+            string ArteranosExeFile = 
+                (ArteranosFlavor == "desktop"
+                    ? "Arteranos"
+                    : "Arteranos-Server")
+                + (IsOnLinux
+                    ? ""
+                    : ".exe");
+            ArteranosExePath = $"{arteranosDir}/{ArteranosExeFile}";
 
             if (Directory.Exists(arteranosDir)) return;
 
             try
             {
-                await WebDownloadFileAsync(arteranosURL, arteranosArchiveFile, "D/l Arteranos from web", 20, 30).ConfigureAwait(false);
+                await WebDownloadFileAsync(arteranosURL, arteranosArchiveFile, "D/l Arteranos from web", 30).ConfigureAwait(false);
 
                 splash.ProgressTxt = "Extracting Arteranos from web...";
 
