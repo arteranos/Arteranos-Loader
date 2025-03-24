@@ -10,7 +10,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace Loader
+namespace Arteranos_Loader
 {
     internal static class Program
     {
@@ -19,13 +19,13 @@ namespace Loader
 
         private const string KUBO_ARCH_WIN64 = "windows-amd64";
         private const string KUBO_ARCH_LINUX64 = "linux-amd64";
-
+        private const string AUTHORNAME = "willneedit";
 
         public static bool IsOnLinux { get; private set; } = false;
         public static string ProgDataDir { get; private set; } = null;
         public static string IPFSExeName { get; private set; } = null;
         public static string IPFSExePath { get; private set; } = null;
-        public static string ArteranosUserData {  get; private set; } = null;
+        public static string PersistentDataPath { get; private set; } = null;
         public static string ArteranosFlavor { get; private set; } = null;
         public static string ArteranosExePath { get; private set; } = null;
         public static BootstrapData BootstrapData { get; private set; } = null;
@@ -55,19 +55,32 @@ namespace Loader
 
         public static async Task LoaderWorkerThread()
         {
-            await WebDownloadBootstrap();
-
-            Initialize();
-
-            await WebDownloadIPFSExe(ipfsArchiveSource, ipfsExeInArchive).ConfigureAwait(false);
-
-            await WebDownloadArteranos().ConfigureAwait(false);
-
-            for (int i = 4; i < 10; i++)
+            try
             {
-                splash.Progress = i * 10;
+                await WebDownloadBootstrap();
 
-                await Task.Delay(1000);
+                Initialize();
+
+                await WebDownloadIPFSExe();
+
+                await WebDownloadArteranos();
+
+                await StartArteranosIPFS();
+
+                for (int i = 4; i < 10; i++)
+                {
+                    splash.Progress = i * 10;
+
+                    await Task.Delay(1000);
+                }
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine($"Loader failed: {ex}");
+            }
+            finally
+            {
+                Console.Out.Flush();
             }
 
             Application.Exit();
@@ -96,6 +109,8 @@ namespace Loader
             if (!Directory.Exists(ProgDataDir)) Directory.CreateDirectory(ProgDataDir);
         }
 
+        private static string persistentDataPathRoot = null;
+
         private static void Initialize()
         {
             IsOnLinux = Environment.OSVersion.Platform == PlatformID.Unix;
@@ -111,6 +126,12 @@ namespace Loader
                 ipfsArchiveSource = $"{KUBO_EXECUTABLE_ROOT}_{KUBO_ARCH_LINUX64}.tar.gz";
                 ipfsExeInArchive = $"/{IPFSExeName}";
                 osArchitecture = "Linux-amd64";
+
+                string confighome = Environment.GetEnvironmentVariable("XDG_CONFIG_HOME");
+                if (string.IsNullOrEmpty(confighome))
+                    confighome = $"{Environment.GetEnvironmentVariable("HOME")}/.config";
+
+                persistentDataPathRoot = $"{confighome}/unity3d";
             }
             else
             {
@@ -121,11 +142,12 @@ namespace Loader
                 ipfsArchiveSource = $"{KUBO_EXECUTABLE_ROOT}_{KUBO_ARCH_WIN64}.zip";
                 ipfsExeInArchive = $"/kubo/{IPFSExeName}";
                 osArchitecture = "Win-amd64";
+
+                // Unity manual says it prefers USERPROFILE over SHGetKnownFolderPath()
+                persistentDataPathRoot = $"{Environment.GetEnvironmentVariable("USERPROFILE")}/Appdata/LocalLow";
             }
 
             Console.WriteLine($"Program Dir: {ProgDataDir}");
-            Console.WriteLine($"IPFS Exe   : {IPFSExeName}");
-            Console.WriteLine($"IPFS source: {ipfsArchiveSource}");
         }
 
         #region Web Download File
@@ -180,6 +202,7 @@ namespace Loader
 
         #endregion
 
+        #region Web Download components up to 40
         private static async Task WebDownloadBootstrap()
         {
             string bootstrapDataFile = $"{ProgDataDir}/BootstrapData.json";
@@ -208,12 +231,20 @@ namespace Loader
             }
         }
 
-        private static async Task WebDownloadIPFSExe(string url, string fileInArchive)
+        private static async Task WebDownloadIPFSExe()
         {
+            string url = ipfsArchiveSource;
+            string fileInArchive = ipfsExeInArchive;
+
+            Console.WriteLine($"IPFS Exe   : {IPFSExeName}");
+            Console.WriteLine($"IPFS source: {ipfsArchiveSource}");
+
             IPFSExePath = $"{ProgDataDir}/{IPFSExeName}";
+
+            Console.WriteLine($"IPFS Exe Path: {IPFSExePath}");
+
             string target = $"{ProgDataDir}/downloaded-kubo-ipfs";
             string targetDir = $"{target}.dir";
-            string archiveFormat = Path.GetExtension(url);
 
             // Got a version, skip downloading via web.
             if (File.Exists(IPFSExePath))
@@ -224,17 +255,23 @@ namespace Loader
 
             try
             {
-                await WebDownloadFileAsync(url, target, "D/l IPFS from web", 10).ConfigureAwait(false);
+                if(!File.Exists(target))
+                    await WebDownloadFileAsync(url, target, "D/l IPFS from web", 10);
 
                 splash.ProgressTxt = "Extracting IPFS from web...";
 
-                if (archiveFormat == ".zip")
+                if (url.EndsWith(".zip"))
                     ZipFile.ExtractToDirectory(target, targetDir);
-                else if (archiveFormat == ".tar.gz")
-                    await Utils.UnTarGzDirectoryAsync(target, targetDir).ConfigureAwait(false);
+                else if (url.EndsWith(".tar.gz"))
+                    await Utils.UnTarGzDirectoryAsync(targetDir, target);
 
                 File.Copy($"{targetDir}/{fileInArchive}", IPFSExePath);
-
+                if (IsOnLinux) Utils.Exec($"chmod 755 {IPFSExePath}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Cannot download IPFS executable: {ex.Message}");
+                throw;
             }
             finally
             {
@@ -262,6 +299,15 @@ namespace Loader
                     : ".exe");
             ArteranosExePath = $"{arteranosDir}/{ArteranosExeFile}";
 
+            PersistentDataPath = persistentDataPathRoot + $"/{AUTHORNAME}/Arteranos" +
+                (ArteranosFlavor == "desktop"
+                    ? string.Empty
+                    : "_DedicatedServer");
+
+            Console.WriteLine($"Archive File       : {arteranosArchiveFile}");
+            Console.WriteLine($"Arteranos Exe path : {ArteranosExePath}");
+            Console.WriteLine($"User data path     : {PersistentDataPath}");
+
             if (Directory.Exists(arteranosDir)) return;
 
             try
@@ -271,6 +317,13 @@ namespace Loader
                 splash.ProgressTxt = "Extracting Arteranos from web...";
 
                 await Utils.UnTarGzDirectoryAsync(arteranosDir, arteranosArchiveFile).ConfigureAwait(false);
+
+                if (IsOnLinux) Utils.Exec($"chmod -R 755 {arteranosDir}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Cannot web download {arteranosURL}: {ex.Message}");
+                Console.WriteLine("Will resort to using IPFS.");
             }
             finally
             {
@@ -278,5 +331,76 @@ namespace Loader
                 splash.Progress = 40;
             }
         }
+
+        #endregion
+
+        #region Init and startup IPFS
+
+        private static void GetFreePort(string what, ref int port, HashSet<int> occupied)
+        {
+            Random rnd = new Random();
+            bool free = true;
+
+            for(int i = 0; i < 5000;  i++)
+            {
+                if(free)
+                {
+                    Console.WriteLine($"{what} port {port} is available");
+                    occupied.Add(port);
+                    return;
+                }
+
+                // Mark it off in the list
+                occupied.Add(port);
+
+                // Try another one.
+                port = rnd.Next(8192, 49152);
+            }
+
+            throw new Exception("Port  exhaustion");
+        }
+
+        private static async Task StartArteranosIPFS()
+        {
+            splash.ProgressTxt = "Starting Arteranos IPFS";
+
+            IPFSConnection.Status res = IPFSConnection.CheckRepository(true);
+
+            if(res != IPFSConnection.Status.OK)
+                throw new InvalidOperationException($"Cannot build/access IPFS repo: {res}");
+
+            res = IPFSConnection.AddBootstraps();
+
+            if (res != IPFSConnection.Status.OK)
+                throw new InvalidOperationException($"Cannot add Prime and Deploy bootstrap multiaddr: {res}");
+
+            // Starts the daemon, safe to start on top of another instance, and
+            // fails to start if there's a port squatter.
+            res = IPFSConnection.StartDaemon(false);
+
+            res = await IPFSConnection.CheckAPIConnection(20);
+            if(res != IPFSConnection.Status.OK)
+            {
+                Console.WriteLine("Cannot start daemon, maybe on different ports...");
+
+                int ipfsPort = 4001;    // default
+                int apiPort = 5001;     // default
+                HashSet<int> occupied = new();
+
+                GetFreePort("API", ref apiPort, occupied);
+                GetFreePort("IPFS", ref ipfsPort, occupied);
+
+                IPFSConnection.ReconfigurePorts(apiPort, ipfsPort);
+
+                // Start the daemon anew, and see if we're okay.
+                IPFSConnection.StartDaemon(false);
+                await Task.Delay(5000);
+                res = await IPFSConnection.CheckAPIConnection(5, true);
+
+            }
+
+            splash.Progress = 50;
+        }
+        #endregion
     }
 }

@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
-namespace Loader
+namespace Arteranos_Loader
 {
     public partial class Splash : Form
     {

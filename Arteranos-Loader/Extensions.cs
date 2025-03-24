@@ -4,7 +4,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Loader
+namespace Arteranos_Loader
 {
     public static class StringExtensions
     {

@@ -7,8 +7,9 @@ using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 using System.Threading;
+using System.Diagnostics;
 
-namespace Loader
+namespace Arteranos_Loader
 {
     internal static class Utils
     {
@@ -62,5 +63,27 @@ namespace Loader
             }
         }
 
+        public static void Exec(string cmd)
+        {
+            var escapedArgs = cmd.Replace("\"", "\\\"");
+
+            using var process = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    RedirectStandardOutput = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    WindowStyle = ProcessWindowStyle.Hidden,
+                    FileName = "/bin/bash",
+                    Arguments = $"-c \"{escapedArgs}\""
+                }
+            };
+
+            process.Start();
+            process.WaitForExit();
+            if (process.ExitCode != 0)
+                throw new Exception($"{escapedArgs} returned {process.ExitCode}");
+        }
     }
 }

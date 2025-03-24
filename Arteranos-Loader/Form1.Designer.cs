@@ -1,7 +1,7 @@
 ﻿using System.Drawing;
 using System.Windows.Forms;
 
-namespace Loader
+namespace Arteranos_Loader
 {
     partial class Splash
     {
