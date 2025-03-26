@@ -125,6 +125,8 @@ namespace Arteranos_Loader
 
             RepoDir = $"{Program.PersistentDataPath}/.ipfs";
 
+            if(!Directory.Exists(RepoDir)) Directory.CreateDirectory(RepoDir);
+
             try
             {
                 _ = IpfsClientEx.ReadDaemonPrivateKey(RepoDir);

@@ -8,9 +8,29 @@ using System.Threading.Tasks;
 using System.IO;
 using System.Threading;
 using System.Diagnostics;
+using Ipfs;
+using Newtonsoft.Json;
 
 namespace Arteranos_Loader
 {
+    public enum FileStatus
+    {
+        ToDelete = -1,
+        Unchanged,
+        ToPatch
+    }
+
+    public class FileEntry
+    {
+        public Cid Cid;
+        public string Path;
+        public long Size;
+
+        [JsonIgnore]
+        public FileStatus Status;
+    }
+
+
     internal static class Utils
     {
 
@@ -62,6 +82,56 @@ namespace Arteranos_Loader
                 }
             }
         }
+
+        public static List<string> ListDirectory(string dir, bool recursive, bool self)
+        {
+            List<string> list = [];
+
+            if (recursive)
+            {
+                foreach (string subdir in Directory.EnumerateDirectories(dir))
+                    list.AddRange(ListDirectory(subdir, recursive, false));
+            }
+
+            List<string> files = Directory.EnumerateFiles(dir).ToList();
+            list.AddRange(files);
+
+            if (self) list.Add(dir);
+
+            return list;
+        }
+
+        public static async Task<List<FileEntry>> ListIPFSDirectory(string root, Cid id, bool recursive, bool self)
+        {
+            List<FileEntry> list = [];
+
+            IFileSystemNode fsn = await IPFSConnection.Ipfs.FileSystem.ListAsync(id);
+
+            if(recursive)
+            {
+                // Enumerate Directories
+                foreach (IFileSystemLink fileSystemLink in fsn.Links)
+                {
+                    if (fileSystemLink.Size == 0) 
+                        list.AddRange(await ListIPFSDirectory($"{root}{fileSystemLink.Name}/", fileSystemLink.Id, recursive, false));
+                }
+            }
+
+            foreach (IFileSystemLink fileSystemLink in fsn.Links)
+            {
+                if (fileSystemLink.Size != 0)
+                    list.Add(new()
+                    {
+                        Cid = fileSystemLink.Id,
+                        Path = $"{root}{fileSystemLink.Name}",
+                        Size = fileSystemLink.Size,
+                        Status = FileStatus.ToPatch
+                    });
+            }
+
+            return list;
+        }
+
 
         public static void Exec(string cmd)
         {
