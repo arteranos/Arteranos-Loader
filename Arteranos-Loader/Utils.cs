@@ -10,6 +10,7 @@ using System.Threading;
 using System.Diagnostics;
 using Ipfs;
 using Newtonsoft.Json;
+using System.Net.NetworkInformation;
 
 namespace Arteranos_Loader
 {
@@ -101,37 +102,44 @@ namespace Arteranos_Loader
             return list;
         }
 
-        public static async Task<List<FileEntry>> ListIPFSDirectory(string root, Cid id, bool recursive, bool self)
+        public static async Task<List<FileEntry>> ListIPFSDirectory(string root, Cid id, bool recursive, Splash splash, Queue<(string, Cid)> remainQueue = null)
         {
             List<FileEntry> list = [];
-
-            IFileSystemNode fsn = await IPFSConnection.Ipfs.FileSystem.ListAsync(id);
-
-            if(recursive)
+            if (remainQueue == null)
             {
-                // Enumerate Directories
-                foreach (IFileSystemLink fileSystemLink in fsn.Links)
-                {
-                    if (fileSystemLink.Size == 0) 
-                        list.AddRange(await ListIPFSDirectory($"{root}{fileSystemLink.Name}/", fileSystemLink.Id, recursive, false));
-                }
+                remainQueue = [];
+                remainQueue.Enqueue((root, id));
             }
 
-            foreach (IFileSystemLink fileSystemLink in fsn.Links)
+            while (remainQueue.Count > 0)
             {
-                if (fileSystemLink.Size != 0)
-                    list.Add(new()
+                splash.ProgressTxt = $"Working ({remainQueue.Count} items remaining)...";
+
+                (root, id) = remainQueue.Dequeue();
+
+                IFileSystemNode fsn = await IPFSConnection.Ipfs.FileSystem.ListAsync(id);
+
+                foreach (IFileSystemLink fileSystemLink in fsn.Links)
+                {
+                    if (fileSystemLink.Size == 0)
                     {
-                        Cid = fileSystemLink.Id,
-                        Path = $"{root}{fileSystemLink.Name}",
-                        Size = fileSystemLink.Size,
-                        Status = FileStatus.ToPatch
-                    });
+                        if (recursive) remainQueue.Enqueue(($"{root}{fileSystemLink.Name}/", fileSystemLink.Id));
+                    }
+                    else
+                    {
+                        list.Add(new()
+                        {
+                            Cid = fileSystemLink.Id,
+                            Path = $"{root}{fileSystemLink.Name}",
+                            Size = fileSystemLink.Size,
+                            Status = FileStatus.ToPatch
+                        });
+                    }
+                }
             }
 
             return list;
         }
-
 
         public static void Exec(string cmd)
         {
@@ -154,6 +162,27 @@ namespace Arteranos_Loader
             process.WaitForExit();
             if (process.ExitCode != 0)
                 throw new Exception($"{escapedArgs} returned {process.ExitCode}");
+        }
+
+        public static void GetUsedPorts(HashSet<int> occupied)
+        {
+            static void AddCollection<T>(HashSet<T> set, IEnumerable<T> collection)
+            {
+                foreach (T t in collection) set.Add(t);
+            }
+
+            var properties = IPGlobalProperties.GetIPGlobalProperties();
+            // Ignore active connections
+            var connections = properties.GetActiveTcpConnections();
+            AddCollection(occupied, from n in connections select n.LocalEndPoint.Port);
+
+            // Ignore active tcp listners
+            var endPoints = properties.GetActiveTcpListeners();
+            AddCollection(occupied, from n in endPoints select n.Port);
+
+            // Ignore active UDP listeners
+            endPoints = properties.GetActiveUdpListeners();
+            AddCollection(occupied, from n in endPoints select n.Port);
         }
     }
 }

@@ -170,7 +170,7 @@ namespace Arteranos_Loader
 
         public static Status StartDaemon(bool forceRestart)
         {
-            if (_DaemonRunning ?? false && !forceRestart) return Status.OK;
+            if ((_DaemonRunning ?? false) && !forceRestart) return Status.OK;
             if (forceRestart) StopDaemon();
 
             ProcessStartInfo psi = BuildDaemonCommand("daemon --enable-pubsub-experiment");
@@ -266,8 +266,10 @@ namespace Arteranos_Loader
                 $"\"[ " +
                 $"  \\\"/ip4/0.0.0.0/tcp/{ipfsPort}\\\", " +
                 $"  \\\"/ip6/::/tcp/{ipfsPort}\\\", " +
+                $"  \\\"/ip4/0.0.0.0/udp/{ipfsPort}/webrtc-direct\\\", " +
                 $"  \\\"/ip4/0.0.0.0/udp/{ipfsPort}/quic-v1\\\", " +
                 $"  \\\"/ip4/0.0.0.0/udp/{ipfsPort}/quic-v1/webtransport\\\", " +
+                $"  \\\"/ip6/::/udp/{ipfsPort}/webrtc-direct\\\", " +
                 $"  \\\"/ip6/::/udp/{ipfsPort}/quic-v1\\\", " +
                 $"  \\\"/ip6/::/udp/{ipfsPort}/quic-v1/webtransport\\\" " +
                 $"]\"");
@@ -277,6 +279,13 @@ namespace Arteranos_Loader
             // Additionally, remove the Web Gateway port.
             psi = BuildDaemonCommand("config --json Addresses.Gateway []");
             _ = RunDaemonCommand(psi, true);
+
+            // Reset detection data in lieu of the changed settings
+            APIPort = null;
+            _RepoExists = null;
+            Ipfs = null;
+            _IPFSAccessible = null;
+            _RepoExists = null;
         }
     }
 }

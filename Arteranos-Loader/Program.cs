@@ -352,11 +352,13 @@ namespace Arteranos_Loader
 
         private static void GetFreePort(string what, ref int port, HashSet<int> occupied)
         {
-            Random rnd = new Random();
+            Random rnd = new();
             bool free = true;
 
             for(int i = 0; i < 5000;  i++)
             {
+                free = !occupied.Contains(port);
+
                 if(free)
                 {
                     Console.WriteLine($"{what} port {port} is available");
@@ -368,7 +370,7 @@ namespace Arteranos_Loader
                 occupied.Add(port);
 
                 // Try another one.
-                port = rnd.Next(8192, 49152);
+                port = rnd.Next(16384, 49152);
             }
 
             throw new Exception("Port  exhaustion");
@@ -390,7 +392,7 @@ namespace Arteranos_Loader
 
             // Starts the daemon, safe to start on top of another instance, and
             // fails to start if there's a port squatter.
-            res = IPFSConnection.StartDaemon(false);
+            _ = IPFSConnection.StartDaemon(false);
 
             res = await IPFSConnection.CheckAPIConnection(20);
             if(res != IPFSConnection.Status.OK)
@@ -401,15 +403,17 @@ namespace Arteranos_Loader
                 int apiPort = 5001;     // default
                 HashSet<int> occupied = [];
 
+                Utils.GetUsedPorts(occupied);
+
                 GetFreePort("API", ref apiPort, occupied);
                 GetFreePort("IPFS", ref ipfsPort, occupied);
 
                 IPFSConnection.ReconfigurePorts(apiPort, ipfsPort);
 
                 // Start the daemon anew, and see if we're okay.
-                IPFSConnection.StartDaemon(false);
+                IPFSConnection.StartDaemon(true);
                 await Task.Delay(5000);
-                res = await IPFSConnection.CheckAPIConnection(5, true);
+                _ = await IPFSConnection.CheckAPIConnection(5, true);
 
             }
 
@@ -426,11 +430,11 @@ namespace Arteranos_Loader
         {
             splash.ProgressTxt = "Listing local files...";
 
-            Dictionary<string, FileEntry> CachedFiles = new();
+            Dictionary<string, FileEntry> CachedFiles = [];
 
             if (File.Exists(CacheFileName))
             {
-                List<FileEntry> CachedLocalFileList = [];
+                List<FileEntry> CachedLocalFileList;
 
                 string json = File.ReadAllText(CacheFileName);
                 CachedLocalFileList = JsonConvert.DeserializeObject<List<FileEntry>>(json);
@@ -446,7 +450,7 @@ namespace Arteranos_Loader
                 list1[i] = list1[i].Replace('\\', '/');
 
                 string entry = list1[i];
-                FileInfo fileInfo = new FileInfo(entry);
+                FileInfo fileInfo = new(entry);
                 string path = entry[(ArteranosDir.Length + 1)..];
 
                 string Cid = (CachedFiles.ContainsKey(path) && CachedFiles[path].Size == fileInfo.Length) 
@@ -492,12 +496,8 @@ namespace Arteranos_Loader
 
             if (rootCid.StartsWith("/ipfs/")) rootCid = rootCid[6..];
 
-            RemoteFileList = await Utils.ListIPFSDirectory(string.Empty, rootCid, true, false);
+            RemoteFileList = await Utils.ListIPFSDirectory(string.Empty, rootCid, true, splash);
 
-            foreach(FileEntry entry in RemoteFileList)
-            {
-                Console.WriteLine(entry.Path);
-            }
             splash.Progress = 60;
         }
 
@@ -508,7 +508,7 @@ namespace Arteranos_Loader
 
         private static void CompareFiles()
         {
-            CompareTable = new();
+            CompareTable = [];
 
             foreach(FileEntry entry in LocalFileList)
                 CompareTable[entry.Path] = entry;
@@ -545,8 +545,9 @@ namespace Arteranos_Loader
 
             string name = $"{BootstrapData.IPFSDeployDir}/{ArteranosRoot}";
             string rootCid = await IPFSConnection.Ipfs.ResolveAsync(name);
+            if (rootCid.StartsWith("/ipfs/")) rootCid = rootCid[6..];
 
-            LocalFileList = new();
+            LocalFileList = [];
 
             foreach (KeyValuePair<string, FileEntry> entry in CompareTable)
             {
@@ -558,8 +559,6 @@ namespace Arteranos_Loader
                 else if(entry.Value.Status == FileStatus.ToPatch)
                 {
                     splash.ProgressTxt = $"D/l from IPFS ({toDownloadFiles} files, {Magnitude(toDownloadSize)})";
-
-                    if (rootCid.StartsWith("/ipfs/")) rootCid = rootCid[6..];
 
                     Stream s = await IPFSConnection.Ipfs.FileSystem.ReadFileAsync($"{rootCid}/{entry.Key}");
                     if(File.Exists(target)) File.Delete(target);
