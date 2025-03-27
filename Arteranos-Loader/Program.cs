@@ -81,6 +81,8 @@ namespace Arteranos_Loader
                 await DownloadFromIPFS();
 
                 WriteHashCacheFile();
+
+                StartArteranos();
             }
             catch(Exception ex)
             {
@@ -96,6 +98,7 @@ namespace Arteranos_Loader
 
         private static readonly HttpClient HttpClient = new();
 
+        // ---------------------------------------------------------------
         #region Initializing
         private static void Initialize0()
         {
@@ -156,6 +159,7 @@ namespace Arteranos_Loader
                 persistentDataPathRoot = $"{Environment.GetEnvironmentVariable("USERPROFILE")}/Appdata/LocalLow";
             }
 
+            // TODO Flavor selection via commandline
             ArteranosFlavor = "desktop";
             ArteranosRoot = $"{ArteranosFlavor}-{osArchitecture}";
             ArteranosDir = $"{ProgDataDir}/{ArteranosRoot}";
@@ -166,7 +170,7 @@ namespace Arteranos_Loader
         }
 
         #endregion
-
+        // ---------------------------------------------------------------
         #region Web Download File
         private static Action<long, long> ReportProgress(string pattern, int frompercent, int topercent)
         {
@@ -218,7 +222,7 @@ namespace Arteranos_Loader
         }
 
         #endregion
-
+        // ---------------------------------------------------------------
         #region Web Download components up to 40
         private static async Task WebDownloadBootstrap()
         {
@@ -230,7 +234,7 @@ namespace Arteranos_Loader
             }
             else
             {
-                BootstrapData = new();
+                BootstrapData = BootstrapData.Defaults();
                 string json = JsonConvert.SerializeObject(BootstrapData, Formatting.Indented);
                 File.WriteAllText(bootstrapDataFile, json);
             }
@@ -244,7 +248,7 @@ namespace Arteranos_Loader
             catch
             {
                 if (File.Exists(bootstrapDataFile)) File.Delete(bootstrapDataFile);
-                BootstrapData = new();
+                BootstrapData = BootstrapData.Defaults();
             }
         }
 
@@ -347,7 +351,7 @@ namespace Arteranos_Loader
         }
 
         #endregion
-
+        // ---------------------------------------------------------------
         #region Init and start IPFS up to 50
 
         private static void GetFreePort(string what, ref int port, HashSet<int> occupied)
@@ -420,7 +424,7 @@ namespace Arteranos_Loader
             splash.Progress = 50;
         }
         #endregion
-
+        // ---------------------------------------------------------------
         #region Patch via IPFS
 
         private static List<FileEntry> LocalFileList = null;
@@ -583,7 +587,34 @@ namespace Arteranos_Loader
             string json = JsonConvert.SerializeObject(LocalFileList, Formatting.Indented);
             File.WriteAllText(CacheFileName, json);
         }
-#endregion
+        #endregion
+        // ---------------------------------------------------------------
+        #region Handoff and startup
 
+        private static void StartArteranos()
+        {
+            string argLine = string.Empty;
+
+            ProcessStartInfo psi = new()
+            {
+                FileName = ArteranosExePath,
+                Arguments = argLine,
+                UseShellExecute = false,
+                RedirectStandardError = false,
+                RedirectStandardInput = false,
+                RedirectStandardOutput = false,
+            };
+
+            try
+            {
+                Process process = Process.Start(psi);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+            }
+        }
+
+        #endregion
     }
 }
