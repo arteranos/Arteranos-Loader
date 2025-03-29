@@ -9,13 +9,13 @@ namespace Arteranos_Loader
 {
     internal class BootstrapData
     {
-        public string ArteranosBootstrapData;
-        public string DeployBootstrapAddr;
-        public string PrimeBootstrapAddr;
-        public string IPFSDeployDir;
-        public string KuboVersion;
-        public string KuboWebDlRoot;
-        public string ArteranosWebDlRoot;
+        public string ArteranosBootstrapData = null;
+        public string DeployBootstrapAddr = null;
+        public string PrimeBootstrapAddr = null;
+        public string IPFSDeployDir = null;
+        public string KuboVersion = null;
+        public string KuboWebDlRoot = null;
+        public string ArteranosWebDlRoot = null;
 
         public static BootstrapData Defaults()
         {

@@ -11,6 +11,8 @@ using System.Diagnostics;
 using Ipfs;
 using Newtonsoft.Json;
 using System.Net.NetworkInformation;
+using System.Security.Principal;
+using System.Security.AccessControl;
 
 namespace Arteranos_Loader
 {
@@ -183,6 +185,16 @@ namespace Arteranos_Loader
             // Ignore active UDP listeners
             endPoints = properties.GetActiveUdpListeners();
             AddCollection(occupied, from n in endPoints select n.Port);
+        }
+
+        public static void SetWorldWritable(string path)
+        {
+            FileSecurity fileSecurity = new();
+            SecurityIdentifier everyone = new(WellKnownSidType.AuthenticatedUserSid, null);
+            FileSystemAccessRule rule = new(everyone, FileSystemRights.FullControl, AccessControlType.Allow);
+            fileSecurity.AddAccessRule(rule);
+
+            File.SetAccessControl(path, fileSecurity);
         }
     }
 }

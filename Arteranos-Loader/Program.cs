@@ -233,17 +233,14 @@ namespace Arteranos_Loader
                 BootstrapData = JsonConvert.DeserializeObject<BootstrapData>(json);
             }
             else
-            {
                 BootstrapData = BootstrapData.Defaults();
-                string json = JsonConvert.SerializeObject(BootstrapData, Formatting.Indented);
-                File.WriteAllText(bootstrapDataFile, json);
-            }
 
             try
             {
                 await WebDownloadFileAsync(BootstrapData.ArteranosBootstrapData, bootstrapDataFile, "D/l bootstrap data", 5);
                 string json = File.ReadAllText(bootstrapDataFile);
                 BootstrapData = JsonConvert.DeserializeObject<BootstrapData>(json);
+                Utils.SetWorldWritable(bootstrapDataFile);
             }
             catch
             {
@@ -288,6 +285,7 @@ namespace Arteranos_Loader
 
                 File.Copy($"{targetDir}/{fileInArchive}", IPFSExePath);
                 if (IsOnLinux) Utils.Exec($"chmod 755 {IPFSExePath}");
+                Utils.SetWorldWritable(IPFSExePath);
             }
             catch (Exception ex)
             {
@@ -357,13 +355,9 @@ namespace Arteranos_Loader
         private static void GetFreePort(string what, ref int port, HashSet<int> occupied)
         {
             Random rnd = new();
-            bool free = true;
-
-            for(int i = 0; i < 5000;  i++)
+            for (int i = 0; i < 5000;  i++)
             {
-                free = !occupied.Contains(port);
-
-                if(free)
+                if (!occupied.Contains(port))
                 {
                     Console.WriteLine($"{what} port {port} is available");
                     occupied.Add(port);
@@ -377,7 +371,7 @@ namespace Arteranos_Loader
                 port = rnd.Next(16384, 49152);
             }
 
-            throw new Exception("Port  exhaustion");
+            throw new Exception("Port exhaustion");
         }
 
         private static async Task StartArteranosIPFS()
@@ -575,6 +569,9 @@ namespace Arteranos_Loader
                 // And update local file list.
                 if(entry.Value.Status != FileStatus.ToDelete)
                     LocalFileList.Add(entry.Value);
+
+                // Unchanged and new files need to be opened
+                Utils.SetWorldWritable(target);
             }
 
             if (IsOnLinux) Utils.Exec($"chmod -R 755 {ArteranosDir}");
@@ -586,6 +583,7 @@ namespace Arteranos_Loader
         {
             string json = JsonConvert.SerializeObject(LocalFileList, Formatting.Indented);
             File.WriteAllText(CacheFileName, json);
+            Utils.SetWorldWritable(CacheFileName);
         }
         #endregion
         // ---------------------------------------------------------------
