@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi" xmlns:fw="http://schemas.microsoft.com/wix/FirewallExtension">
+    <Fragment>
+
+		<Property Id="PROGRAMDATA">
+			<RegistrySearch Id="FindProgramData" Root="HKLM" Key="SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList" Name="ProgramData" Type="raw" />
+		</Property>
+		
+		<DirectoryRef Id="TARGETDIR">
+			<Component Id="fwrules" Guid="E8138E05-ACAF-469D-96AE-39F9F1B7D2E0">
+				<!-- 
+				Ugly hack. 
+				Need to retrieve HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\ProgramData `s
+				parsed value for the root path for ProgramData
+				-->
+				<fw:FirewallException Id='DesktopFW' Name='Arteranos Desktop' Program='[PROGRAMDATA]\arteranos\arteranos\desktop-Win-amd64\Arteranos.exe' Scope='any' />
+				<fw:FirewallException Id='ServerFW' Name='Arteranos Server' Program='[PROGRAMDATA]\arteranos\arteranos\server-Win-amd64\Arteranos-Server.exe' Scope='any' />
+				<fw:FirewallException Id='IPFSFW' Name='Arteranos IPFS' Program='[PROGRAMDATA]\arteranos\arteranos\ipfs.exe' Scope='any' />
+			</Component>
+		</DirectoryRef>
+    </Fragment>
+</Wix>
