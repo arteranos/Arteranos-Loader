@@ -31,7 +31,6 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 		message(FATAL_ERROR "Need to build Loader executable with the Windows toolchain first")
 	endif()
 else()
-	add_custom_target(LoaderExe DEPENDS ${LoaderExeFile})
 	add_custom_command(
 		OUTPUT ${LoaderExeFile}
 		COMMAND "msbuild" Arteranos-Loader\\Arteranos-Loader.csproj /t:Restore,Build -p:Configuration=Release -p:Platform=AnyCPU
@@ -39,6 +38,7 @@ else()
 		VERBATIM
 	)
 
+	add_custom_target(LoaderExe DEPENDS ${LoaderExeFile})
 
 # No need, dependent projects are managed in the .csproj
 #
@@ -50,8 +50,6 @@ else()
 #		VERBATIM
 #	)
 endif()
-
-
 
 ################## Install section #######################################
 
@@ -85,9 +83,20 @@ set(CPACK_WIX_EXTENSIONS WixFirewallExtension)
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 	set(CPACK_PACKAGING_INSTALL_PREFIX "/usr/")
 	set(CPACK_GENERATOR "DEB")
+
+	add_custom_target(Installer DEPENDS package)
 else()
 	set(CPACK_PACKAGING_INSTALL_PREFIX "/")
 	set(CPACK_GENERATOR "WIX")
+
+	add_custom_command(
+		OUTPUT ${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-Win64.msi
+		COMMAND "ninja" "package"
+		DEPENDS ${LoaderExeFile}
+		WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+	)
+
+	add_custom_target(Installer DEPENDS ${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-Win64.msi)
 endif()
 
 include(CPack)
