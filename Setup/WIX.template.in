@@ -42,9 +42,10 @@
         <WixVariable Id="WixUIDialogBmp" Value="$(var.CPACK_WIX_UI_DIALOG)"/>
         <?endif?>
 
-        <!-- Added Firewall Rules component -->
+        <!-- Additional general components -->
 		<FeatureRef Id="ProductFeature">
-			<ComponentRef Id="fwrules" />				
+			<ComponentRef Id="fwrules" />
+            <ComponentRef Id="LoadedData" />
 		</FeatureRef>
 
         <UIRef Id="$(var.CPACK_WIX_UI_REF)" />

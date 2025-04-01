@@ -9,15 +9,21 @@
 		
 		<DirectoryRef Id="TARGETDIR">
 			<Component Id="fwrules" Guid="E8138E05-ACAF-469D-96AE-39F9F1B7D2E0">
-				<!-- 
-				Ugly hack. 
-				Need to retrieve HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileList\ProgramData `s
-				parsed value for the root path for ProgramData
-				-->
 				<fw:FirewallException Id='DesktopFW' Name='Arteranos Desktop' Program='[PROGRAMDATA]\arteranos\arteranos\desktop-Win-amd64\Arteranos.exe' Scope='any' />
 				<fw:FirewallException Id='ServerFW' Name='Arteranos Server' Program='[PROGRAMDATA]\arteranos\arteranos\server-Win-amd64\Arteranos-Server.exe' Scope='any' />
 				<fw:FirewallException Id='IPFSFW' Name='Arteranos IPFS' Program='[PROGRAMDATA]\arteranos\arteranos\ipfs.exe' Scope='any' />
 			</Component>
+			<Directory Id="CommonAppDataFolder">
+				<Directory Id="CommonVendorFolder" Name="arteranos">
+					<Directory Id="CommonProductFolder" Name="arteranos">
+						<Component Id='LoadedData' Guid='BEC23CA3-BBB1-4913-8DBC-4F78256946B3'>
+							<CreateFolder />
+							<RemoveFile Id='Remove_IpfsExe' Name='ipfs.exe'  On="uninstall"/>
+							<RemoveFolder Id="Remove_CommonProductFolder" On="uninstall"/>
+						</Component>
+					</Directory>
+				</Directory>
+			</Directory>
 		</DirectoryRef>
     </Fragment>
 </Wix>
