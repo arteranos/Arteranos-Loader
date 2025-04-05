@@ -489,12 +489,13 @@ namespace Arteranos_Loader
         {
             splash.ProgressTxt = "Listing remote files...";
 
-            string name = $"{BootstrapData.IPFSDeployDir}/{ArteranosRoot}";
+            string name = $"{BootstrapData.IPFSDeployDir}/{ArteranosRoot}-FileList.json";
             string rootCid = await IPFSConnection.Ipfs.ResolveAsync(name);
 
             if (rootCid.StartsWith("/ipfs/")) rootCid = rootCid[6..];
 
-            RemoteFileList = await Utils.ListIPFSDirectory(string.Empty, rootCid, true, splash);
+            string json = await IPFSConnection.Ipfs.FileSystem.ReadAllTextAsync(rootCid);
+            RemoteFileList = JsonConvert.DeserializeObject<List<FileEntry>>(json);
 
             splash.Progress = 60;
         }

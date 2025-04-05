@@ -104,45 +104,6 @@ namespace Arteranos_Loader
             return list;
         }
 
-        public static async Task<List<FileEntry>> ListIPFSDirectory(string root, Cid id, bool recursive, Splash splash, Queue<(string, Cid)> remainQueue = null)
-        {
-            List<FileEntry> list = [];
-            if (remainQueue == null)
-            {
-                remainQueue = [];
-                remainQueue.Enqueue((root, id));
-            }
-
-            while (remainQueue.Count > 0)
-            {
-                splash.ProgressTxt = $"Working ({remainQueue.Count} items remaining)...";
-
-                (root, id) = remainQueue.Dequeue();
-
-                IFileSystemNode fsn = await IPFSConnection.Ipfs.FileSystem.ListAsync(id);
-
-                foreach (IFileSystemLink fileSystemLink in fsn.Links)
-                {
-                    if (fileSystemLink.Size == 0)
-                    {
-                        if (recursive) remainQueue.Enqueue(($"{root}{fileSystemLink.Name}/", fileSystemLink.Id));
-                    }
-                    else
-                    {
-                        list.Add(new()
-                        {
-                            Cid = fileSystemLink.Id,
-                            Path = $"{root}{fileSystemLink.Name}",
-                            Size = fileSystemLink.Size,
-                            Status = FileStatus.ToPatch
-                        });
-                    }
-                }
-            }
-
-            return list;
-        }
-
         public static void Exec(string cmd)
         {
             var escapedArgs = cmd.Replace("\"", "\\\"");
