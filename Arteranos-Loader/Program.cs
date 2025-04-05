@@ -6,9 +6,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Compression;
-using System.Linq;
 using System.Net.Http;
-using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -39,8 +37,9 @@ namespace Arteranos_Loader
         private static string ipfsExeInArchive = null;
         private static string osArchitecture = null;
 
+        private static ISplash splash = null;
 
-        private static Splash splash = null;
+        private static bool silent = false;
 
         /// <summary>
         /// Der Haupteinstiegspunkt für die Anwendung.
@@ -48,14 +47,18 @@ namespace Arteranos_Loader
         [STAThread]
         static void Main()
         {
-            Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
-
             Initialize0();
 
-            splash = new();
+            if (silent) splash = new SplashSilent();
+            else
+            {
+                Application.EnableVisualStyles();
+                Application.SetCompatibleTextRenderingDefault(false);
 
-            Application.Run(splash);
+                splash = new Splash();
+            }
+
+            splash.Run();
         }
 
         public static async Task LoaderWorkerThread()
@@ -93,7 +96,7 @@ namespace Arteranos_Loader
                 Console.Out.Flush();
             }
 
-            Application.Exit();
+            splash.Exit();
         }
 
         private static readonly HttpClient HttpClient = new();

@@ -10,12 +10,12 @@ using System.Windows.Forms;
 
 namespace Arteranos_Loader
 {
-    public partial class Splash : Form
+    public partial class Splash : Form, ISplash
     {
         public Splash()
         {
             InitializeComponent();
-            
+
             _DisplayTimer.Start();
 
             Task.Run(Program.LoaderWorkerThread);
@@ -23,6 +23,18 @@ namespace Arteranos_Loader
 
         public string ProgressTxt { get; set; } = "Initializing...";
         public int Progress { get; set; } = 0;
+        public bool IsQuitting { get; set; } = false;
+
+        public void Run()
+        {
+            Application.Run(this);
+        }
+
+        public void Exit()
+        { 
+            IsQuitting = true;
+            Application.Exit(); 
+        }
 
         private void _Background_Click(object sender, EventArgs e)
         {

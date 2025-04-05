@@ -150,12 +150,16 @@ namespace Arteranos_Loader
 
         public static void SetWorldWritable(string path)
         {
-            FileSecurity fileSecurity = new();
-            SecurityIdentifier everyone = new(WellKnownSidType.AuthenticatedUserSid, null);
-            FileSystemAccessRule rule = new(everyone, FileSystemRights.FullControl, AccessControlType.Allow);
-            fileSecurity.AddAccessRule(rule);
+            try
+            {
+                FileSecurity fileSecurity = new();
+                SecurityIdentifier everyone = new(WellKnownSidType.AuthenticatedUserSid, null);
+                FileSystemAccessRule rule = new(everyone, FileSystemRights.FullControl, AccessControlType.Allow);
+                fileSecurity.AddAccessRule(rule);
 
-            File.SetAccessControl(path, fileSecurity);
+                File.SetAccessControl(path, fileSecurity);
+            }
+            catch { } // Meh. Windows only
         }
     }
 }
