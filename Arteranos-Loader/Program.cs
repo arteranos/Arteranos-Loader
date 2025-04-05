@@ -10,6 +10,9 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
+using Mono.Options;
+using System.Linq;
+
 namespace Arteranos_Loader
 {
     internal static class Program
@@ -39,17 +42,21 @@ namespace Arteranos_Loader
 
         private static ISplash splash = null;
 
-        private static bool silent = false;
+        private static bool quiet = false;
+        private static bool server = false;
+        private static List<string> extra = new();
 
         /// <summary>
         /// Der Haupteinstiegspunkt für die Anwendung.
         /// </summary>
         [STAThread]
-        static void Main()
+        static void Main(string[] args)
         {
+            ParseCommandlineOptions(args);
+
             Initialize0();
 
-            if (silent) splash = new SplashSilent();
+            if (quiet) splash = new SplashSilent();
             else
             {
                 Application.EnableVisualStyles();
@@ -59,6 +66,28 @@ namespace Arteranos_Loader
             }
 
             splash.Run();
+        }
+
+        private static void ParseCommandlineOptions(string[] args)
+        {
+            Console.WriteLine($"Commandline arguments: {string.Join(" ", args)}");
+
+            var options = new OptionSet()
+            {
+                { "q|quiet", "No splash/loading progress window", q => quiet = q != null },
+                { "s|server", "Run the dedicated server, implies -q", s => server = s != null },
+            };
+
+            try
+            {
+                extra = options.Parse(args);
+
+                if(server) quiet = true;
+            }
+            catch (OptionException)
+            {
+
+            }
         }
 
         public static async Task LoaderWorkerThread()
@@ -162,8 +191,7 @@ namespace Arteranos_Loader
                 persistentDataPathRoot = $"{Environment.GetEnvironmentVariable("USERPROFILE")}/Appdata/LocalLow";
             }
 
-            // TODO Flavor selection via commandline
-            ArteranosFlavor = "desktop";
+            ArteranosFlavor = server ? "server" : "desktop";
             ArteranosRoot = $"{ArteranosFlavor}-{osArchitecture}";
             ArteranosDir = $"{ProgDataDir}/{ArteranosRoot}";
             CacheFileName = $"{ArteranosDir}-Cache.json";
