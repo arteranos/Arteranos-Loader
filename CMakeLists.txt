@@ -76,7 +76,10 @@ set(CPACK_WIX_LICENSE_RTF ${SetupDataDir}/Windows/SetupLicense.rtf)
 set(CPACK_WIX_UI_BANNER ${SetupDataDir}/Windows/banner.bmp)
 set(CPACK_WIX_UI_DIALOG ${SetupDataDir}/Windows/Dialog.bmp)
 # set(CPACK_WIX_CUSTOM_XMLNS fw=http://schemas.microsoft.com/wix/FirewallExtension)
-set(CPACK_WIX_EXTRA_SOURCES ${SetupDataDir}/Windows/WIX.fwrules.wxs)
+set(CPACK_WIX_EXTRA_SOURCES 
+	${SetupDataDir}/Windows/WIX.fwrules.wxs
+	${SetupDataDir}/Windows/WIX.moreShortcuts.wxs
+)
 set(CPACK_WIX_EXTENSIONS WixFirewallExtension)
 #set()
 

@@ -46,6 +46,7 @@
 		<FeatureRef Id="ProductFeature">
 			<ComponentRef Id="fwrules" />
             <ComponentRef Id="LoadedData" />
+			<ComponentRef Id="MoreShortcuts" />
 		</FeatureRef>
 
         <UIRef Id="$(var.CPACK_WIX_UI_REF)" />
