@@ -10,6 +10,8 @@ project ("Setup")
 set(CPACK_PACKAGE_VERSION 0.9.0)
 
 set(SolutionRoot ${CMAKE_SOURCE_DIR})
+set(SetupDataDir ${CMAKE_SOURCE_DIR}/Setup)
+set(GeneratedFiles ${CMAKE_BINARY_DIR}/Generated)
 
 message(STATUS "Source dir   : ${CMAKE_SOURCE_DIR}")
 message(STATUS "Binary dir   : ${CMAKE_BINARY_DIR}")
@@ -40,20 +42,19 @@ else()
 
 endif()
 
-################## Install section #######################################
+################## Install configuration #################################
 
 set(CMAKE_PROJECT_HOMEPAGE_URL "https://github.com/arteranos/Arteranos-Loader")
 
-set(CPACK_PACKAGE_NAME "Arteranos")
 set(CPACK_PACKAGE_VENDOR "arteranos")
 set(CPACK_PACKAGE_CONTACT "arteranos")
 set(CPACK_PACKAGE_DESCRIPTION "This is the Arteranos Loader, to download, update and start Arteranos.")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Arteranos Loader")
 
-set(SetupDataDir ${CMAKE_SOURCE_DIR}/Setup)
+set(CPACK_PACKAGING_INSTALL_PREFIX "/")
 
 set(CPACK_DEBIAN_PACKAGE_SECTION "games")
-#set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA ${CMAKE_BINARY_DIR}/postinst;${CMAKE_BINARY_DIR}/prerm)
+set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA ${GeneratedFiles}/postinst;${GeneratedFiles}/prerm)
 
 set(CPACK_WIX_UPGRADE_GUID "FB5A017C-2AFC-4C8B-BC97-47787B42B6CB")
 set(CPACK_WIX_PROGRAM_MENU_FOLDER "Arteranos")
@@ -73,12 +74,12 @@ set(CPACK_WIX_EXTENSIONS WixFirewallExtension)
 #set()
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-	set(CPACK_PACKAGING_INSTALL_PREFIX "/usr/")
+	set(CPACK_PACKAGE_NAME "arteranos-server")
 	set(CPACK_GENERATOR "DEB")
 
 	add_custom_target(Installer DEPENDS package)
 else()
-	set(CPACK_PACKAGING_INSTALL_PREFIX "/")
+set(CPACK_PACKAGE_NAME "Arteranos")
 	set(CPACK_GENERATOR "WIX")
 
 	add_custom_command(
@@ -94,20 +95,83 @@ endif()
 include(CPack)
 include(GNUInstallDirs)
 
+################## Generated files #######################################
+
+set(TargetLibexecDir	${CMAKE_INSTALL_LIBEXECDIR}/arteranos)
+set(MainExePath /${TargetLibexecDir}/Arteranos-Loader.exe)
+
+file(MAKE_DIRECTORY ${GeneratedFiles})
+
+configure_file(
+	${SetupDataDir}/Linux/Arteranos-Server-Start.in
+	${GeneratedFiles}/Arteranos-Server-Start
+	FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+	@ONLY
+	NEWLINE_STYLE LF
+)
+
+configure_file(
+	${SetupDataDir}/Linux/init_d_arteranos.in
+	${GeneratedFiles}/arteranos
+	FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+	@ONLY
+	NEWLINE_STYLE LF
+)
+
+configure_file(
+	${SetupDataDir}/Linux/postinst.in
+	${GeneratedFiles}/postinst
+	FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+	@ONLY
+	NEWLINE_STYLE LF
+)
+
+configure_file(
+	${SetupDataDir}/Linux/prerm.in
+	${GeneratedFiles}/prerm
+	FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+	@ONLY
+	NEWLINE_STYLE LF
+)
+
+################## Packaging #############################################
+
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+	# Linux keeps this in a dedicated libexec directory, maybe with a sofdt link in /bin
+	set(TargetInstallBindir ${TargetLibexecDir})
+else()
+	# Windows keeps these in the Program Files directory
+	set(TargetInstallBindir ${CMAKE_INSTALL_BINDIR})
+endif()
+
 install(DIRECTORY
 	${LoaderExeDir}/
-	DESTINATION ${CMAKE_INSTALL_BINDIR}
+	FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+	DESTINATION ${TargetInstallBindir}
 )
 
 install(DIRECTORY
 	${SetupDataDir}/Common/_bin/
-	DESTINATION ${CMAKE_INSTALL_BINDIR}
+	FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+	DESTINATION ${TargetInstallBindir}
 )
 
-set_property(INSTALL ${CMAKE_INSTALL_BINDIR}/Arteranos-Loader.exe
-    PROPERTY CPACK_START_MENU_SHORTCUTS "Arteranos"
-)
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+	install(PROGRAMS
+		${GeneratedFiles}/Arteranos-Server-Start
+		DESTINATION ${CMAKE_INSTALL_BINDIR}
+	)
 
-set_property(INSTALL ${CMAKE_INSTALL_BINDIR}/Arteranos-Loader.exe
-    PROPERTY CPACK_DESKTOP_SHORTCUTS "Arteranos"
-)
+	install(PROGRAMS
+		${GeneratedFiles}/arteranos
+		DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/init.d
+	)
+else()
+	set_property(INSTALL ${TargetInstallBindir}/Arteranos-Loader.exe
+		PROPERTY CPACK_START_MENU_SHORTCUTS "Arteranos"
+	)
+
+	set_property(INSTALL ${TargetInstallBindir}/Arteranos-Loader.exe
+		PROPERTY CPACK_DESKTOP_SHORTCUTS "Arteranos"
+	)
+endif()
