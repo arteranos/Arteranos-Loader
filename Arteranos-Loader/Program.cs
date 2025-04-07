@@ -11,7 +11,6 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 
 using Mono.Options;
-using System.Linq;
 
 namespace Arteranos_Loader
 {
@@ -44,7 +43,8 @@ namespace Arteranos_Loader
 
         private static bool quiet = false;
         private static bool server = false;
-        private static List<string> extra = new();
+        private static bool help = false;
+        private static List<string> extra = null;
 
         /// <summary>
         /// Der Haupteinstiegspunkt für die Anwendung.
@@ -53,6 +53,8 @@ namespace Arteranos_Loader
         static void Main(string[] args)
         {
             ParseCommandlineOptions(args);
+
+            if (help) return;
 
             Initialize0();
 
@@ -72,10 +74,11 @@ namespace Arteranos_Loader
         {
             Console.WriteLine($"Commandline arguments: {string.Join(" ", args)}");
 
-            var options = new OptionSet()
+            OptionSet options = new()
             {
                 { "q|quiet", "No splash/loading progress window", q => quiet = q != null },
                 { "s|server", "Run the dedicated server, implies -q", s => server = s != null },
+                { "h|help", "This text :)", h => help = h != null }
             };
 
             try
@@ -86,8 +89,10 @@ namespace Arteranos_Loader
             }
             catch (OptionException)
             {
-
+                help = true;
             }
+
+            if(help) options.WriteOptionDescriptions(Console.Out);
         }
 
         public static async Task LoaderWorkerThread()
@@ -623,12 +628,14 @@ namespace Arteranos_Loader
 
         private static void StartArteranos()
         {
-            string argLine = string.Empty;
+            string arguments = extra.Count > 0
+                ? $"\"{string.Join("\" \"", extra)}\""
+                : string.Empty;
 
             ProcessStartInfo psi = new()
             {
                 FileName = ArteranosExePath,
-                Arguments = argLine,
+                Arguments = arguments, // Extra args are passed over to Arteranos main
                 UseShellExecute = false,
                 RedirectStandardError = false,
                 RedirectStandardInput = false,

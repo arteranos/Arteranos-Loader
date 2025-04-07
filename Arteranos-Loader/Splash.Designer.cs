@@ -51,7 +51,7 @@ namespace Arteranos_Loader
             this._Background.Size = new System.Drawing.Size(640, 640);
             this._Background.TabIndex = 1;
             this._Background.TabStop = false;
-            this._Background.Click += new System.EventHandler(this._Background_Click);
+            this._Background.Click += new System.EventHandler(this.Background_Click);
             // 
             // _ProgressBar
             // 
@@ -76,7 +76,7 @@ namespace Arteranos_Loader
             // 
             // _DisplayTimer
             // 
-            this._DisplayTimer.Tick += new System.EventHandler(this._DisplayTimer_Tick);
+            this._DisplayTimer.Tick += new System.EventHandler(this.DisplayTimer_Tick);
             // 
             // Splash
             // 

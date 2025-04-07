@@ -1,15 +1,13 @@
-﻿# CMakeList.txt: CMake-Projekt für "Setup". Schließen Sie die Quelle ein, und definieren Sie
-# projektspezifische Logik hier.
-#
-cmake_minimum_required (VERSION 3.8)
+﻿cmake_minimum_required (VERSION 3.29)
 
-# Aktivieren Sie Hot Reload für MSVC-Compiler, sofern unterstützt.
 if (POLICY CMP0141)
   cmake_policy(SET CMP0141 NEW)
   set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<IF:$<AND:$<C_COMPILER_ID:MSVC>,$<CXX_COMPILER_ID:MSVC>>,$<$<CONFIG:Debug,RelWithDebInfo>:EditAndContinue>,$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>>")
 endif()
 
 project ("Setup")
+
+set(CPACK_PACKAGE_VERSION 0.9.0)
 
 set(SolutionRoot ${CMAKE_SOURCE_DIR})
 
@@ -40,15 +38,6 @@ else()
 
 	add_custom_target(LoaderExe DEPENDS ${LoaderExeFile})
 
-# No need, dependent projects are managed in the .csproj
-#
-#	add_custom_target(ipfs-rpc-api DEPENDS ${APIDllFile})
-#	add_custom_command(
-#		OUTPUT ${APIDllFile}
-#		COMMAND "msbuild" ipfs-rpc-api\\ipfs-rpc-api.csproj /t:Restore,Build -p:Configuration=Release -p:Platform=AnyCPU
-#		WORKING_DIRECTORY ${SolutionRoot}
-#		VERBATIM
-#	)
 endif()
 
 ################## Install section #######################################
