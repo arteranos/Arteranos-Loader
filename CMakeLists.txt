@@ -55,6 +55,13 @@ set(CPACK_PACKAGING_INSTALL_PREFIX "/")
 
 set(CPACK_DEBIAN_PACKAGE_SECTION "games")
 set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA ${GeneratedFiles}/postinst;${GeneratedFiles}/prerm)
+set(CPACK_DEBIAN_PACKAGE_DEPENDS
+	mono-runtime
+	libmono-system-net-http4.0-cil
+	libmono-system-windows-forms4.0-cil
+	libmono-system-runtime-serialization4.0-cil
+	libmono-system-io-compression-filesystem4.0-cil
+)
 
 set(CPACK_WIX_UPGRADE_GUID "FB5A017C-2AFC-4C8B-BC97-47787B42B6CB")
 set(CPACK_WIX_PROGRAM_MENU_FOLDER "Arteranos")
@@ -65,13 +72,11 @@ set(CPACK_WIX_PRODUCT_ICON ${SetupDataDir}/Windows/Arteranos.ico)
 set(CPACK_WIX_LICENSE_RTF ${SetupDataDir}/Windows/SetupLicense.rtf)
 set(CPACK_WIX_UI_BANNER ${SetupDataDir}/Windows/banner.bmp)
 set(CPACK_WIX_UI_DIALOG ${SetupDataDir}/Windows/Dialog.bmp)
-# set(CPACK_WIX_CUSTOM_XMLNS fw=http://schemas.microsoft.com/wix/FirewallExtension)
 set(CPACK_WIX_EXTRA_SOURCES 
 	${SetupDataDir}/Windows/WIX.fwrules.wxs
 	${SetupDataDir}/Windows/WIX.moreShortcuts.wxs
 )
 set(CPACK_WIX_EXTENSIONS WixFirewallExtension)
-#set()
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 	set(CPACK_PACKAGE_NAME "arteranos-server")
@@ -79,7 +84,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 
 	add_custom_target(Installer DEPENDS package)
 else()
-set(CPACK_PACKAGE_NAME "Arteranos")
+	set(CPACK_PACKAGE_NAME "Arteranos")
 	set(CPACK_GENERATOR "WIX")
 
 	add_custom_command(
