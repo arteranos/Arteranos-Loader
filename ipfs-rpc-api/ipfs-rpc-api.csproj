@@ -9,6 +9,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="**/*.meta" Visible="false"/>
+    <None Include="**/*.git" Visible="false"/>
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="AsyncEnumerator">
       <Version>4.0.2</Version>
     </PackageReference>
