@@ -8,8 +8,10 @@ using SplashProgress.ViewModels;
 
 namespace SplashProgress.Views;
 
-public partial class SplashWindow : Window
+public partial class SplashWindow : Window, IProgressReporter
 {
+    private Func<IProgressReporter, Task>? _doStuff = null;
+
     public int Progress
     {
         set
@@ -31,6 +33,11 @@ public partial class SplashWindow : Window
 
     public SplashWindow()
     {
+    }
+
+    public SplashWindow(Func<IProgressReporter, Task> action)
+    {
+        _doStuff = action;
         InitializeComponent();
     }
 
@@ -43,18 +50,9 @@ public partial class SplashWindow : Window
     {
         ViewModel = DataContext as SplashWindowViewModel;
 
-        ProgressTxt = "Initializing..";
-        Progress = 20;
-
-        // Do some background stuff here.
-        await Task.Delay(3000);
-
-        ProgressTxt = "Exiting..";
-        Progress = 90;
-
-        // Do some background stuff here.
-        await Task.Delay(3000);
-
+        if(_doStuff != null)
+            await _doStuff.Invoke(this);
+        
         await Dispatcher.UIThread.InvokeAsync(() =>
         {
             Close();
