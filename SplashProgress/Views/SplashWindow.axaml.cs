@@ -10,10 +10,11 @@ namespace SplashProgress.Views;
 
 public partial class SplashWindow : Window, IProgressReporter
 {
-    private Func<IProgressReporter, Task>? _doStuff = null;
+    private Func<IProgressReporter, Task> _doStuff = pr => Task.CompletedTask;
 
     public int Progress
     {
+        get => ViewModel?.Progress ?? 0;
         set
         {
             if(ViewModel == null) return;
@@ -22,6 +23,7 @@ public partial class SplashWindow : Window, IProgressReporter
     }
     public string ProgressTxt
     {
+        get => ViewModel?.ProgressTxt ?? string.Empty;
         set
         {
             if(ViewModel == null) return;
@@ -33,6 +35,7 @@ public partial class SplashWindow : Window, IProgressReporter
 
     public SplashWindow()
     {
+        InitializeComponent();
     }
 
     public SplashWindow(Func<IProgressReporter, Task> action)
@@ -50,8 +53,7 @@ public partial class SplashWindow : Window, IProgressReporter
     {
         ViewModel = DataContext as SplashWindowViewModel;
 
-        if(_doStuff != null)
-            await _doStuff.Invoke(this);
+        await _doStuff.Invoke(this);
         
         await Dispatcher.UIThread.InvokeAsync(() =>
         {

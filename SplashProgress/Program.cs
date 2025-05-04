@@ -13,6 +13,7 @@ class Program
 {
     public static Func<IProgressReporter, Task>? Loader { get; private set; } = null;
     public static bool Server { get; private set; } = false;
+    public static List<string> Extra { get; private set; } = [];
 
     private static bool _quiet = false;
     private static bool _showHelp = false;
@@ -47,8 +48,6 @@ class Program
 
     private static void ParseCommandlineOptions(string[] args)
     {
-        List<string> extra;
-
         Console.WriteLine($"Commandline arguments: {string.Join(" ", args)}");
 
         OptionSet options = new()
@@ -60,7 +59,7 @@ class Program
 
         try
         {
-            extra = options.Parse(args);
+            Extra = options.Parse(args);
 
             if(Server) _quiet = true;
         }

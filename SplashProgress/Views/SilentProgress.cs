@@ -10,14 +10,30 @@ namespace SplashProgress.Views;
 
 public class SilentProgress : IProgressReporter
 {
-    public int Progress 
-    { 
-        set => Console.WriteLine($"{value}%");
+    int _progress = 0;
+    string _progressTxt = string.Empty;
+
+    public int Progress
+    {
+        get => _progress;
+        set
+        {
+            _progress = value;
+            Console.WriteLine($"{value}%");
+        }
     }
-    public string ProgressTxt 
-    { 
-        set => Console.WriteLine(value);
+    public string ProgressTxt
+    {
+        get => _progressTxt;
+        set
+        {
+            _progressTxt = value;
+            Console.WriteLine(value);
+        }
     }
 
-    public void Run() => Program.Loader?.Invoke(this);
+    public void Run()
+    {
+        Program.Loader?.Invoke(this).Wait();
+    }
 }
