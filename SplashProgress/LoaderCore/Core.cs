@@ -5,6 +5,10 @@ using SplashProgress.Views;
 using System.IO;
 using Newtonsoft.Json;
 using System.IO.Compression;
+using System.Collections.Generic;
+
+using Ipfs;
+using Ipfs.CoreApi;
 
 namespace SplashProgress.LoaderCore;
 
@@ -19,23 +23,24 @@ public class Core
 
     public bool IsOnLinux { get; private set; } = false;
     public string ProgDataDir { get; private set; } = string.Empty;
-    public static string IPFSExeName { get; private set; } = string.Empty;
-    public static string IPFSExePath { get; private set; } = string.Empty;
+    public string IPFSExeName { get; private set; } = string.Empty;
+    public string IPFSExePath { get; private set; } = string.Empty;
 
-    public static string ArteranosFlavor { get; private set; } = string.Empty;
-    public static string ArteranosRoot { get; private set; } = string.Empty;
-    public static string ArteranosDir { get; private set; } = string.Empty;
-    public static string ArteranosExePath { get; private set; } = string.Empty;
-    public static string CacheFileName { get; private set; } = string.Empty;
+    public string ArteranosFlavor { get; private set; } = string.Empty;
+    public string ArteranosRoot { get; private set; } = string.Empty;
+    public string ArteranosDir { get; private set; } = string.Empty;
+    public string ArteranosExePath { get; private set; } = string.Empty;
+    public string CacheFileName { get; private set; } = string.Empty;
 
-    public static string PersistentDataPath { get; private set; } = string.Empty;
+    public string PersistentDataPath { get; private set; } = string.Empty;
 
     public BootstrapData BootstrapData { get; private set; } = BootstrapData.Defaults();
 
 
-    private static string ipfsArchiveSource = string.Empty;
-    private static string ipfsExeInArchive = string.Empty;
-    private static string osArchitecture = string.Empty;
+    private string ipfsArchiveSource = string.Empty;
+    private string ipfsExeInArchive = string.Empty;
+    private string osArchitecture = string.Empty;
+    private IPFSConnection? IPFSConnection = null;
 
     private WebDownload? WebDownload;
 
@@ -50,10 +55,9 @@ public class Core
         Initialize0();
 
         HttpClient httpClient = new()
-        // {
-        //     Timeout = TimeSpan.FromSeconds(60)
-        // }
-        ;
+        {
+            Timeout = TimeSpan.FromSeconds(60)
+        };
 
         WebDownload = new(httpClient, reporter);
 
@@ -61,10 +65,27 @@ public class Core
 
         Initialize();
 
+        IPFSConnection = new(this);
+        
         await WebDownloadIPFSExe();
 
         await WebDownloadArteranos();
 
+        await StartArteranosIPFS();
+
+/*
+        await GatherLocalFiles();
+
+        await GatherRemoteFiles();
+
+        CompareFiles();
+
+        await DownloadFromIPFS();
+
+        WriteHashCacheFile();
+
+        StartArteranos();
+ */
 
         // Do some background stuff here.
         await Task.Delay(3000);
@@ -145,8 +166,6 @@ public class Core
     #region Web Download components up to 40
     private async Task WebDownloadBootstrap()
     {
-        if (WebDownload == null) throw new Exception();
-
         string bootstrapDataFile = $"{ProgDataDir}/BootstrapData.json";
         if (File.Exists(bootstrapDataFile))
         {
@@ -226,9 +245,6 @@ public class Core
 
     private async Task WebDownloadArteranos()
     {
-        if (WebDownload == null) throw new Exception();
-        if (splash == null) throw new Exception();
-
         string arteranosURL = $"{BootstrapData.ArteranosWebDlRoot}/{ArteranosRoot}.tar.gz";
 
         string arteranosArchiveFile = $"{ProgDataDir}/{ArteranosRoot}.tar.gz";
@@ -276,4 +292,74 @@ public class Core
     }
 
     #endregion
+    // ---------------------------------------------------------------
+    #region Init and start IPFS up to 50
+
+    private void GetFreePort(string what, ref int port, HashSet<int> occupied)
+    {
+        Random rnd = new();
+        for (int i = 0; i < 5000; i++)
+        {
+            if (!occupied.Contains(port))
+            {
+                Console.WriteLine($"{what} port {port} is available");
+                occupied.Add(port);
+                return;
+            }
+
+            // Mark it off in the list
+            occupied.Add(port);
+
+            // Try another one.
+            port = rnd.Next(16384, 49152);
+        }
+
+        throw new Exception("Port exhaustion");
+    }
+
+    private async Task StartArteranosIPFS()
+    {
+        splash.ProgressTxt = "Starting Arteranos IPFS";
+
+        IPFSConnection.Status res = IPFSConnection.CheckRepository(true);
+
+        if (res != IPFSConnection.Status.OK)
+            throw new InvalidOperationException($"Cannot build/access IPFS repo: {res}");
+
+        res = IPFSConnection.AddBootstraps();
+
+        if (res != IPFSConnection.Status.OK)
+            throw new InvalidOperationException($"Cannot add Prime and Deploy bootstrap multiaddr: {res}");
+
+        // Starts the daemon, safe to start on top of another instance, and
+        // fails to start if there's a port squatter.
+        _ = IPFSConnection.StartDaemon(false);
+
+        res = await IPFSConnection.CheckAPIConnection(20);
+        if (res != IPFSConnection.Status.OK)
+        {
+            Console.WriteLine("Cannot start daemon, maybe on different ports...");
+
+            int ipfsPort = 4001;    // default
+            int apiPort = 5001;     // default
+            HashSet<int> occupied = [];
+
+            Utils.GetUsedPorts(occupied);
+
+            GetFreePort("API", ref apiPort, occupied);
+            GetFreePort("IPFS", ref ipfsPort, occupied);
+
+            IPFSConnection.ReconfigurePorts(apiPort, ipfsPort);
+
+            // Start the daemon anew, and see if we're okay.
+            IPFSConnection.StartDaemon(true);
+            await Task.Delay(5000);
+            _ = await IPFSConnection.CheckAPIConnection(5, true);
+
+        }
+
+        splash.Progress = 50;
+    }
+    #endregion
+
 }

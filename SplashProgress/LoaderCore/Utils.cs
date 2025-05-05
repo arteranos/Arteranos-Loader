@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using System.IO;
 using System.Threading;
 using System.Diagnostics;
-// using Ipfs;
+using Ipfs;
 using Newtonsoft.Json;
 using System.Net.NetworkInformation;
 using System.Security.Principal;
@@ -26,7 +26,7 @@ public enum FileStatus
 
 public class FileEntry
 {
-    // public Cid Cid;
+    public Cid? Cid;
     public string? Path;
     public long Size;
 
