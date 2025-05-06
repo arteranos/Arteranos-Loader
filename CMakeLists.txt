@@ -1,4 +1,4 @@
-﻿cmake_minimum_required (VERSION 3.29)
+﻿cmake_minimum_required (VERSION 3.28)
 
 if (POLICY CMP0141)
   cmake_policy(SET CMP0141 NEW)
@@ -20,27 +20,19 @@ message(STATUS "Architecture : ${CMAKE_SYSTEM_PROCESSOR}")
 message(STATUS "Version      : ${CPACK_PACKAGE_VERSION}")
 
 
-set(LoaderExeDir ${SolutionRoot}/Arteranos-Loader/bin/Release)
-set(LoaderExeFile ${LoaderExeDir}/Arteranos-Loader.exe)
+set(LoaderExeDir ${SolutionRoot}/ArteranosLoader/bin/Release/net8.0)
+set(LoaderExeName ArteranosLoader${CMAKE_EXECUTABLE_SUFFIX})
+set(LoaderExeFile ${LoaderExeDir}/ArteranosLoader)
 
-set(APIDllDir ${SolutionRoot}/ipfs-rpc-api/bin/Release)
-set(APIDllFile ${APIDllDir}/ipfs-rpc-api.dll)
+add_custom_command(
+	OUTPUT ${LoaderExeFile}
+	COMMAND "dotnet" "build" ArteranosLoader\\ArteranosLoader.csproj /t:Restore,Build -p:Configuration=Release -p:Platform=AnyCPU
+	WORKING_DIRECTORY ${SolutionRoot}
+	VERBATIM
+)
 
-if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-	if(NOT EXISTS ${LoaderExeFile})
-		message(FATAL_ERROR "Need to build Loader executable with the Windows toolchain first")
-	endif()
-else()
-	add_custom_command(
-		OUTPUT ${LoaderExeFile}
-		COMMAND "msbuild" Arteranos-Loader\\Arteranos-Loader.csproj /t:Restore,Build -p:Configuration=Release -p:Platform=AnyCPU
-		WORKING_DIRECTORY ${SolutionRoot}
-		VERBATIM
-	)
+add_custom_target(LoaderExe DEPENDS ${LoaderExeFile})
 
-	add_custom_target(LoaderExe DEPENDS ${LoaderExeFile})
-
-endif()
 
 ################## Install configuration #################################
 
@@ -103,7 +95,8 @@ include(GNUInstallDirs)
 ################## Generated files #######################################
 
 set(TargetLibexecDir	${CMAKE_INSTALL_LIBEXECDIR}/arteranos)
-set(MainExePath /${TargetLibexecDir}/Arteranos-Loader.exe)
+set(MainExeName ${LoaderExeName})
+set(MainExePath /${TargetLibexecDir}/${MainExeName})
 
 file(MAKE_DIRECTORY ${GeneratedFiles})
 
@@ -155,11 +148,11 @@ install(DIRECTORY
 	DESTINATION ${TargetInstallBindir}
 )
 
-install(DIRECTORY
-	${SetupDataDir}/Common/_bin/
-	FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-	DESTINATION ${TargetInstallBindir}
-)
+# install(DIRECTORY
+# 	${SetupDataDir}/Common/_bin/
+# 	FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+# 	DESTINATION ${TargetInstallBindir}
+# )
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 	install(PROGRAMS
@@ -172,11 +165,11 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 		DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/init.d
 	)
 else()
-	set_property(INSTALL ${TargetInstallBindir}/Arteranos-Loader.exe
+	set_property(INSTALL ${TargetInstallBindir}/${MainExeName}
 		PROPERTY CPACK_START_MENU_SHORTCUTS "Arteranos"
 	)
 
-	set_property(INSTALL ${TargetInstallBindir}/Arteranos-Loader.exe
+	set_property(INSTALL ${TargetInstallBindir}/${MainExeName}
 		PROPERTY CPACK_DESKTOP_SHORTCUTS "Arteranos"
 	)
 endif()
