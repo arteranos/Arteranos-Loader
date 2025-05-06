@@ -334,10 +334,10 @@ public class Core
         // fails to start if there's a port squatter.
         _ = IPFSConnection.StartDaemon(false);
 
-        res = await IPFSConnection.CheckAPIConnection(20);
+        res = await IPFSConnection.CheckAPIConnection(20, true);
         if (res != IPFSConnection.Status.OK)
         {
-            Console.WriteLine("Cannot start daemon, maybe on different ports...");
+            Console.WriteLine("Cannot start daemon, or there is a different daemon, so try on different ports...");
 
             int ipfsPort = 4001;    // default
             int apiPort = 5001;     // default
@@ -347,6 +347,8 @@ public class Core
 
             GetFreePort("API", ref apiPort, occupied);
             GetFreePort("IPFS", ref ipfsPort, occupied);
+
+            await Task.Delay(5000);
 
             IPFSConnection.ReconfigurePorts(apiPort, ipfsPort);
 
