@@ -9,6 +9,7 @@ using System.Collections.Generic;
 
 using Ipfs;
 using Ipfs.CoreApi;
+using System.Diagnostics;
 
 namespace SplashProgress.LoaderCore;
 
@@ -66,14 +67,13 @@ public class Core
         Initialize();
 
         IPFSConnection = new(this);
-        
+
         await WebDownloadIPFSExe();
 
         await WebDownloadArteranos();
 
         await StartArteranosIPFS();
 
-/*
         await GatherLocalFiles();
 
         await GatherRemoteFiles();
@@ -85,7 +85,6 @@ public class Core
         WriteHashCacheFile();
 
         StartArteranos();
- */
 
         // Do some background stuff here.
         await Task.Delay(3000);
@@ -362,4 +361,207 @@ public class Core
     }
     #endregion
 
+    #region Patch via IPFS
+
+    private List<FileEntry>? LocalFileList = null;
+    private List<FileEntry>? RemoteFileList = null;
+
+    private async Task GatherLocalFiles()
+    {
+        splash.ProgressTxt = "Listing local files...";
+
+        Dictionary<string, FileEntry> CachedFiles = [];
+
+        if (File.Exists(CacheFileName))
+        {
+            List<FileEntry>? CachedLocalFileList;
+
+            string json = File.ReadAllText(CacheFileName);
+            CachedLocalFileList = JsonConvert.DeserializeObject<List<FileEntry>>(json);
+
+            foreach (FileEntry entry in CachedLocalFileList)
+                CachedFiles[entry.Path ?? string.Empty] = entry;
+        }
+
+        List<FileEntry> list = [];
+        List<string> list1 = Utils.ListDirectory(ArteranosDir, true, false);
+        for (int i = 0; i < list1.Count; i++)
+        {
+            list1[i] = list1[i].Replace('\\', '/');
+
+            string entry = list1[i];
+            FileInfo fileInfo = new(entry);
+            string path = entry[(ArteranosDir.Length + 1)..];
+
+            string Cid = (CachedFiles.ContainsKey(path) && CachedFiles[path].Size == fileInfo.Length)
+                ? CachedFiles[path].Cid
+                : null;
+
+            list.Add(new FileEntry
+            {
+                Cid = Cid,
+                Size = fileInfo.Length,
+                Path = path,
+                Status = FileStatus.ToDelete
+            });
+        }
+
+        LocalFileList = list;
+
+        // Only missing files to rehash.
+        for (int i = 0; i < LocalFileList.Count; i++)
+        {
+            splash.ProgressTxt = $"Listing local files ({i} of {LocalFileList.Count})";
+            FileEntry entry = LocalFileList[i];
+            if (entry.Cid == null)
+            {
+                AddFileOptions ao = new()
+                {
+                    OnlyHash = true,
+                };
+                IFileSystemNode fsn = await IPFSConnection.Ipfs.FileSystem.AddFileAsync($"{ArteranosDir}/{entry.Path}", ao);
+                entry.Cid = fsn.Id;
+            }
+        }
+
+        splash.Progress = 55;
+    }
+
+    private async Task GatherRemoteFiles()
+    {
+        splash.ProgressTxt = "Listing remote files...";
+
+        string name = $"{BootstrapData.IPFSDeployDir}/{ArteranosRoot}-FileList.json";
+        string rootCid = await IPFSConnection.Ipfs.ResolveAsync(name);
+
+        if (rootCid.StartsWith("/ipfs/")) rootCid = rootCid[6..];
+
+        string json = await IPFSConnection.Ipfs.FileSystem.ReadAllTextAsync(rootCid);
+        RemoteFileList = JsonConvert.DeserializeObject<List<FileEntry>>(json);
+
+        splash.Progress = 60;
+    }
+
+    private int toDownloadFiles = 0;
+    private long toDownloadSize = 0;
+
+    private Dictionary<string, FileEntry>? CompareTable = null;
+
+    private void CompareFiles()
+    {
+        CompareTable = [];
+
+        foreach (FileEntry entry in LocalFileList)
+            CompareTable[entry.Path ?? string.Empty] = entry;
+
+        foreach (FileEntry entry in RemoteFileList)
+        {
+            entry.Status = FileStatus.ToPatch;
+
+            string path = entry.Path ?? string.Empty;
+            if (!CompareTable.ContainsKey(path))
+            {
+                // New file
+                CompareTable[path] = entry;
+                toDownloadFiles++;
+                toDownloadSize += entry.Size;
+            }
+            else if (CompareTable[path].Cid != entry.Cid)
+            {
+                // Changed file
+                CompareTable[path] = entry;
+                toDownloadFiles++;
+                toDownloadSize += entry.Size;
+            }
+            else
+            {
+                // As-is
+                entry.Status = FileStatus.Unchanged;
+                CompareTable[path] = entry;
+            }
+        }
+    }
+
+    private async Task DownloadFromIPFS()
+    {
+        splash.ProgressTxt = "D/l from IPFS...";
+
+        string name = $"{BootstrapData.IPFSDeployDir}/{ArteranosRoot}";
+        string rootCid = await IPFSConnection.Ipfs.ResolveAsync(name);
+        if (rootCid.StartsWith("/ipfs/")) rootCid = rootCid[6..];
+
+        LocalFileList = [];
+
+        foreach (KeyValuePair<string, FileEntry> entry in CompareTable)
+        {
+            string target = $"{ArteranosDir}/{entry.Key}";
+            if (entry.Value.Status == FileStatus.ToDelete)
+            {
+                File.Delete(target);
+            }
+            else if (entry.Value.Status == FileStatus.ToPatch)
+            {
+                splash.ProgressTxt = $"D/l from IPFS ({toDownloadFiles} files, {Utils.Magnitude(toDownloadSize)})";
+
+                using Stream s = await IPFSConnection.Ipfs.FileSystem.ReadFileAsync($"{rootCid}/{entry.Key}");
+                if (File.Exists(target)) File.Delete(target);
+                using Stream ts = File.Create(target);
+                s.CopyTo(ts);
+                toDownloadFiles--;
+                toDownloadSize -= entry.Value.Size;
+            }
+
+            // And update local file list.
+            if (entry.Value.Status != FileStatus.ToDelete)
+                LocalFileList.Add(entry.Value);
+
+            // Unchanged and new files need to be opened
+            Utils.SetWorldWritable(target);
+        }
+
+        if (IsOnLinux) Utils.Exec($"chmod -R 755 {ArteranosDir}");
+
+        splash.Progress = 80;
+    }
+
+    private void WriteHashCacheFile()
+    {
+        string json = JsonConvert.SerializeObject(LocalFileList, Formatting.Indented);
+        File.WriteAllText(CacheFileName, json);
+        Utils.SetWorldWritable(CacheFileName);
+    }
+    #endregion
+    // ---------------------------------------------------------------
+    #region Handoff and startup
+
+    private void StartArteranos()
+    {
+        List<string> extra = Program.Extra;
+
+        string arguments = extra.Count > 0
+                ? $"\"{string.Join("\" \"", extra)}\""
+                : string.Empty;
+
+        ProcessStartInfo psi = new()
+        {
+            FileName = ArteranosExePath,
+            Arguments = arguments, // Extra args are passed over to Arteranos main
+            UseShellExecute = false,
+            RedirectStandardError = false,
+            RedirectStandardInput = false,
+            RedirectStandardOutput = false,
+        };
+
+        try
+        {
+            Console.WriteLine($"Starting {psi.FileName} {psi.Arguments}...");
+            Process? process = Process.Start(psi);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex);
+        }
+    }
+
+    #endregion
 }
