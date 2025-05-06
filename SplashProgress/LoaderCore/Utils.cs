@@ -36,6 +36,19 @@ public class FileEntry
 
 public static class Utils
 {
+    public static string Magnitude(long value, string suffix = "B")
+    {
+        float val = value;
+        string[] prefixes = ["", "k", "M", "G", "T", "E"];
+        for (int i = 0; i < prefixes.Length - 1; i++)
+        {
+            if (val < 900) return string.Format("{0:F1} {1}{2}", val, prefixes[i], suffix);
+            // SI numbers prefixes, sorry, no powers of two...
+            val /= 1000;
+        }
+        return string.Format("{0:F1} {1}{2}", val, prefixes[^1], suffix);
+    }
+
 
     public static async Task UnTarGzDirectoryAsync(string arteranosDir, string arteranosArchiveFile)
     {
