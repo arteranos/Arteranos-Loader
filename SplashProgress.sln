@@ -2,7 +2,7 @@
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SplashProgress", "SplashProgress\SplashProgress.csproj", "{E6BDF0CF-C6F0-6DFE-1E1D-994677C316B7}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ArteranosLoader", "ArteranosLoader\ArteranosLoader.csproj", "{E6BDF0CF-C6F0-6DFE-1E1D-994677C316B7}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ipfs-rpc-api", "ipfs-rpc-api\ipfs-rpc-api.csproj", "{CA570A56-7B08-490D-9C7A-E2522BE64C44}"
 EndProject

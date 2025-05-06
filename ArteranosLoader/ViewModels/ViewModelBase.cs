@@ -1,7 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace SplashProgress.ViewModels;
+namespace ArteranosLoader.ViewModels;
 
 public partial class ViewModelBase : ObservableObject
 { 

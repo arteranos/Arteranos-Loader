@@ -4,10 +4,10 @@ using System.Threading.Tasks;
 using Avalonia;
 
 using Mono.Options;
-using SplashProgress.LoaderCore;
-using SplashProgress.Views;
+using ArteranosLoader.LoaderCore;
+using ArteranosLoader.Views;
 
-namespace SplashProgress;
+namespace ArteranosLoader;
 
 class Program
 {

@@ -4,7 +4,7 @@ using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace SplashProgress.LoaderCore;
+namespace ArteranosLoader.LoaderCore;
 
 public static class StringExtensions
 {

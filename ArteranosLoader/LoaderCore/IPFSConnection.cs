@@ -8,7 +8,7 @@ using System.IO;
 using System.Threading.Tasks;
 
 
-namespace SplashProgress.LoaderCore
+namespace ArteranosLoader.LoaderCore
 {
     public class IPFSConnection
     {

@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SplashProgress.LoaderCore;
+namespace ArteranosLoader.LoaderCore;
 
 public class BootstrapData
 {

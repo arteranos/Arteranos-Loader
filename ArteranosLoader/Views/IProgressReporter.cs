@@ -1,4 +1,4 @@
-namespace SplashProgress.Views;
+namespace ArteranosLoader.Views;
 
 public interface IProgressReporter
 {

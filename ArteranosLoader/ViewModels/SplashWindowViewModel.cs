@@ -6,7 +6,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
-namespace SplashProgress.ViewModels;
+namespace ArteranosLoader.ViewModels;
 
 public partial class SplashWindowViewModel : ViewModelBase
 {

@@ -15,7 +15,7 @@ using System.Security.Principal;
 using System.Security.AccessControl;
 using System.Runtime.Versioning;
 
-namespace SplashProgress.LoaderCore;
+namespace ArteranosLoader.LoaderCore;
 
 public enum FileStatus
 {

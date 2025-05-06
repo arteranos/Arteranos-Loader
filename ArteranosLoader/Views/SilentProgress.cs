@@ -4,9 +4,9 @@ using System.Timers;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
-using SplashProgress.ViewModels;
+using ArteranosLoader.ViewModels;
 
-namespace SplashProgress.Views;
+namespace ArteranosLoader.Views;
 
 public class SilentProgress : IProgressReporter
 {

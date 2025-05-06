@@ -1,10 +1,10 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
-using SplashProgress.ViewModels;
-using SplashProgress.Views;
+using ArteranosLoader.ViewModels;
+using ArteranosLoader.Views;
 
-namespace SplashProgress;
+namespace ArteranosLoader;
 
 public partial class App : Application
 {

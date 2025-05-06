@@ -1,7 +1,7 @@
 using System;
 using System.Threading.Tasks;
 using System.Net.Http;
-using SplashProgress.Views;
+using ArteranosLoader.Views;
 using System.IO;
 using Newtonsoft.Json;
 using System.IO.Compression;
@@ -11,7 +11,7 @@ using Ipfs;
 using Ipfs.CoreApi;
 using System.Diagnostics;
 
-namespace SplashProgress.LoaderCore;
+namespace ArteranosLoader.LoaderCore;
 
 public class Core
 {
