@@ -1,10 +1,5 @@
 ﻿cmake_minimum_required (VERSION 3.28)
 
-if (POLICY CMP0141)
-  cmake_policy(SET CMP0141 NEW)
-  set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<IF:$<AND:$<C_COMPILER_ID:MSVC>,$<CXX_COMPILER_ID:MSVC>>,$<$<CONFIG:Debug,RelWithDebInfo>:EditAndContinue>,$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>>")
-endif()
-
 project ("Setup")
 
 set(CPACK_PACKAGE_VERSION 0.9.0)
@@ -19,19 +14,46 @@ message(STATUS "OS           : ${CMAKE_SYSTEM_NAME}")
 message(STATUS "Architecture : ${CMAKE_SYSTEM_PROCESSOR}")
 message(STATUS "Version      : ${CPACK_PACKAGE_VERSION}")
 
+################## Multiarch building ####################################
 
-set(LoaderExeDir ${SolutionRoot}/ArteranosLoader/bin/Release/net8.0)
+function(buildsubtarget subtarget)
+	set(subbindir ${CMAKE_BINARY_DIR}/${subtarget})
+	add_custom_target(${subtarget}
+		COMMAND ${CMAKE_COMMAND} -E make_directory ${subbindir}
+		COMMAND cd ${subbindir} 
+			&& ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -G ${CMAKE_GENERATOR} -DTARGET_SYSTEM=${subtarget} -S${CMAKE_SOURCE_DIR} 
+			&& ${CMAKE_MAKE_PROGRAM} Installer
+	)
+
+	add_dependencies(allarchs ${subtarget})
+endfunction()
+
+if(NOT DEFINED TARGET_SYSTEM)
+	add_custom_target(allarchs)
+
+	buildsubtarget("linux-x64")
+#	Currently unavailable, because WiX is iffy to handle in Linux itself, and CMake doen't support WiX out-of-the-box.
+#	buildsubtarget("win-x64")
+
+	return()
+endif()
+
+################## Building ##############################################
+
+message(STATUS "Target system: ${TARGET_SYSTEM}")
+
+set(LoaderExeDir ${SolutionRoot}/ArteranosLoader/bin/Release/net8.0/${TARGET_SYSTEM}/publish)
 set(LoaderExeName ArteranosLoader${CMAKE_EXECUTABLE_SUFFIX})
 set(LoaderExeFile ${LoaderExeDir}/ArteranosLoader)
 
-add_custom_command(
-	OUTPUT ${LoaderExeFile}
-	COMMAND "dotnet" "build" ArteranosLoader\\ArteranosLoader.csproj /t:Restore,Build -p:Configuration=Release -p:Platform=AnyCPU
+add_custom_target(LoaderExe
+	COMMAND dotnet publish ArteranosLoader.sln -r ${TARGET_SYSTEM} -c Release 
+	# --sc
+	# /p:PublishSingleFile=true /p:PublishTrimmed=true
+	# No Self contained because of package/installer dependencies to .net8.0
+	# SingleFile leaves the .so files outside, and Trimmed needs indepth testing
 	WORKING_DIRECTORY ${SolutionRoot}
-	VERBATIM
 )
-
-add_custom_target(LoaderExe DEPENDS ${LoaderExeFile})
 
 
 ################## Install configuration #################################
@@ -48,11 +70,7 @@ set(CPACK_PACKAGING_INSTALL_PREFIX "/")
 set(CPACK_DEBIAN_PACKAGE_SECTION "games")
 set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA ${GeneratedFiles}/postinst;${GeneratedFiles}/prerm)
 set(CPACK_DEBIAN_PACKAGE_DEPENDS
-	mono-runtime
-	libmono-system-net-http4.0-cil
-	libmono-system-windows-forms4.0-cil
-	libmono-system-runtime-serialization4.0-cil
-	libmono-system-io-compression-filesystem4.0-cil
+	dotnet8
 )
 
 set(CPACK_WIX_UPGRADE_GUID "FB5A017C-2AFC-4C8B-BC97-47787B42B6CB")
@@ -70,24 +88,27 @@ set(CPACK_WIX_EXTRA_SOURCES
 )
 set(CPACK_WIX_EXTENSIONS WixFirewallExtension)
 
-if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+
+if(${TARGET_SYSTEM} STREQUAL "linux-x64")
 	set(CPACK_PACKAGE_NAME "arteranos-server")
 	set(CPACK_GENERATOR "DEB")
 
-	add_custom_target(Installer DEPENDS package)
+	set(PackageFile ${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-Linux.deb)
 else()
 	set(CPACK_PACKAGE_NAME "Arteranos")
 	set(CPACK_GENERATOR "WIX")
 
-	add_custom_command(
-		OUTPUT ${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-Win64.msi
-		COMMAND "ninja" "package"
-		DEPENDS ${LoaderExeFile}
-		WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
-	)
-
-	add_custom_target(Installer DEPENDS ${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-Win64.msi)
+	set(PackageFile ${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-Win64.msi)
 endif()
+
+add_custom_command(
+	OUTPUT ${PackageFile}
+	COMMAND ${CMAKE_MAKE_PROGRAM} "package"
+	DEPENDS LoaderExe
+	WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+)
+
+add_custom_target(Installer DEPENDS ${PackageFile})
 
 include(CPack)
 include(GNUInstallDirs)
@@ -134,8 +155,8 @@ configure_file(
 
 ################## Packaging #############################################
 
-if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-	# Linux keeps this in a dedicated libexec directory, maybe with a sofdt link in /bin
+if(${TARGET_SYSTEM} STREQUAL "linux-x64")
+	# Linux keeps this in a dedicated libexec directory, maybe with a soft link in /bin
 	set(TargetInstallBindir ${TargetLibexecDir})
 else()
 	# Windows keeps these in the Program Files directory
@@ -154,7 +175,7 @@ install(DIRECTORY
 # 	DESTINATION ${TargetInstallBindir}
 # )
 
-if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+if(${TARGET_SYSTEM} STREQUAL "linux-x64")
 	install(PROGRAMS
 		${GeneratedFiles}/Arteranos-Server-Start
 		DESTINATION ${CMAKE_INSTALL_BINDIR}
