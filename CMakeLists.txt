@@ -42,12 +42,12 @@ endif()
 
 message(STATUS "Target system: ${TARGET_SYSTEM}")
 
-set(LoaderExeDir ${SolutionRoot}/ArteranosLoader/bin/Release/net8.0/${TARGET_SYSTEM}/publish)
+set(LoaderExeDir ${SolutionRoot}/Arteranos-Loader/bin/Release/net8.0/${TARGET_SYSTEM}/publish)
 set(LoaderExeName ArteranosLoader${CMAKE_EXECUTABLE_SUFFIX})
 set(LoaderExeFile ${LoaderExeDir}/ArteranosLoader)
 
 add_custom_target(LoaderExe
-	COMMAND dotnet publish ArteranosLoader.sln -r ${TARGET_SYSTEM} -c Release 
+	COMMAND dotnet publish Arteranos-Loader.sln -r ${TARGET_SYSTEM} -c Release 
 	# --sc
 	# /p:PublishSingleFile=true /p:PublishTrimmed=true
 	# No Self contained because of package/installer dependencies to .net8.0
