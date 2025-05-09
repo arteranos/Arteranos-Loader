@@ -16,7 +16,7 @@ message(STATUS "Version      : ${CPACK_PACKAGE_VERSION}")
 
 ################## Multiarch building ####################################
 
-function(buildsubtarget subtarget)
+macro(buildsubtarget subtarget)
 	set(subbindir ${CMAKE_BINARY_DIR}/${subtarget})
 	add_custom_target(${subtarget}
 		COMMAND ${CMAKE_COMMAND} -E make_directory ${subbindir}
@@ -25,15 +25,28 @@ function(buildsubtarget subtarget)
 			&& ${CMAKE_MAKE_PROGRAM} Installer
 	)
 
+	add_custom_target(single_${subtarget}
+		COMMAND ${CMAKE_COMMAND} -E make_directory ${subbindir}
+		COMMAND cd ${subbindir} 
+			&& ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -G ${CMAKE_GENERATOR} -DTARGET_SYSTEM=${subtarget} -S${CMAKE_SOURCE_DIR} 
+			&& ${CMAKE_MAKE_PROGRAM} Installer
+	)
+
 	add_dependencies(allarchs ${subtarget})
-endfunction()
+
+	# Chain individual architectures to prevent race conditions -- dotnet separates output directories, but NOT intermediates
+	if(DEFINED lastarch)
+		add_dependencies(${subtarget} ${lastarch})
+	endif()
+
+	set(lastarch ${subtarget})
+endmacro()
 
 if(NOT DEFINED TARGET_SYSTEM)
 	add_custom_target(allarchs)
 
 	buildsubtarget("linux-x64")
-#	Currently unavailable, because WiX is iffy to handle in Linux itself, and CMake doen't support WiX out-of-the-box.
-#	buildsubtarget("win-x64")
+	buildsubtarget("win-x64")
 
 	return()
 endif()
@@ -73,42 +86,41 @@ set(CPACK_DEBIAN_PACKAGE_DEPENDS
 	dotnet8
 )
 
-set(CPACK_WIX_UPGRADE_GUID "FB5A017C-2AFC-4C8B-BC97-47787B42B6CB")
-set(CPACK_WIX_PROGRAM_MENU_FOLDER "Arteranos")
-set(CPACK_WIX_TEMPLATE ${SetupDataDir}/Windows/WIX.template.in)
-set(CPACK_WIX_INSTALL_SCOPE "perMachine")
+# set(CPACK_WIX_UPGRADE_GUID "FB5A017C-2AFC-4C8B-BC97-47787B42B6CB")
+# set(CPACK_WIX_PROGRAM_MENU_FOLDER "Arteranos")
+# set(CPACK_WIX_TEMPLATE ${SetupDataDir}/Windows/WIX.template.in)
+# set(CPACK_WIX_INSTALL_SCOPE "perMachine")
 
-set(CPACK_WIX_PRODUCT_ICON ${SetupDataDir}/Windows/Arteranos.ico)
-set(CPACK_WIX_LICENSE_RTF ${SetupDataDir}/Windows/SetupLicense.rtf)
-set(CPACK_WIX_UI_BANNER ${SetupDataDir}/Windows/banner.bmp)
-set(CPACK_WIX_UI_DIALOG ${SetupDataDir}/Windows/Dialog.bmp)
-set(CPACK_WIX_EXTRA_SOURCES 
-	${SetupDataDir}/Windows/WIX.fwrules.wxs
-	${SetupDataDir}/Windows/WIX.moreShortcuts.wxs
-)
-set(CPACK_WIX_EXTENSIONS WixFirewallExtension)
+# set(CPACK_WIX_PRODUCT_ICON ${SetupDataDir}/Windows/Arteranos.ico)
+# set(CPACK_WIX_LICENSE_RTF ${SetupDataDir}/Windows/SetupLicense.rtf)
+# set(CPACK_WIX_UI_BANNER ${SetupDataDir}/Windows/banner.bmp)
+# set(CPACK_WIX_UI_DIALOG ${SetupDataDir}/Windows/Dialog.bmp)
+# set(CPACK_WIX_EXTRA_SOURCES 
+# 	${SetupDataDir}/Windows/WIX.fwrules.wxs
+# 	${SetupDataDir}/Windows/WIX.moreShortcuts.wxs
+# )
+# set(CPACK_WIX_EXTENSIONS WixFirewallExtension)
 
-
+# Override package file name to denote the _target_ architecture, not the build system
 if(${TARGET_SYSTEM} STREQUAL "linux-x64")
 	set(CPACK_PACKAGE_NAME "arteranos-server")
 	set(CPACK_GENERATOR "DEB")
 
-	set(PackageFile ${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-Linux.deb)
-else()
+	set(CPACK_PACKAGE_FILE_NAME ${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-Linux64)
+elseif(${TARGET_SYSTEM} STREQUAL "win-x64")
 	set(CPACK_PACKAGE_NAME "Arteranos")
-	set(CPACK_GENERATOR "WIX")
+	set(CPACK_GENERATOR "NSIS")
 
-	set(PackageFile ${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-Win64.msi)
+	set(CPACK_PACKAGE_FILE_NAME ${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-Win64)
+else()
+	message(FATAL_ERROR "Unsupported installer generator for target architecture")
 endif()
 
-add_custom_command(
-	OUTPUT ${PackageFile}
+add_custom_target(Installer
 	COMMAND ${CMAKE_MAKE_PROGRAM} "package"
 	DEPENDS LoaderExe
 	WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 )
-
-add_custom_target(Installer DEPENDS ${PackageFile})
 
 include(CPack)
 include(GNUInstallDirs)
