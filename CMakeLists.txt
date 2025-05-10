@@ -86,6 +86,23 @@ set(CPACK_DEBIAN_PACKAGE_DEPENDS
 	dotnet8
 )
 
+set(CPACK_RESOURCE_FILE_LICENSE ${SetupDataDir}/Windows/SetupLicense.rtf)
+
+set(CPACK_NSIS_MUI_ICON ${SetupDataDir}/Windows/Arteranos.ico)
+set(CPACK_NSIS_INSTALLED_ICON_NAME ${SetupDataDir}/Windows/Arteranos.ico)
+
+# CPack-NSIS-generator disregards the CPACK_* target properties, so we have to add the extra lines directly into the generated .nsi script.
+string(JOIN "\n" CPACK_NSIS_CREATE_ICONS_EXTRA
+	"CreateShortCut '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\Arteranos.lnk' '$INSTDIR\\\\bin\\\\${LoaderExeName}'"
+	"CreateShortCut '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\Arteranos Dedicated Server.lnk' '$INSTDIR\\\\bin\\\\${LoaderExeName}' '--server'"
+)
+
+string(JOIN "\n" CPACK_NSIS_DELETE_ICONS_EXTRA
+	"Delete '$SMPROGRAMS\\\\$START_MENU\\\\Arteranos.lnk'"
+	"Delete '$SMPROGRAMS\\\\$START_MENU\\\\Arteranos Dedicated Server.lnk'"
+)
+
+
 # set(CPACK_WIX_UPGRADE_GUID "FB5A017C-2AFC-4C8B-BC97-47787B42B6CB")
 # set(CPACK_WIX_PROGRAM_MENU_FOLDER "Arteranos")
 # set(CPACK_WIX_TEMPLATE ${SetupDataDir}/Windows/WIX.template.in)
@@ -181,12 +198,6 @@ install(DIRECTORY
 	DESTINATION ${TargetInstallBindir}
 )
 
-# install(DIRECTORY
-# 	${SetupDataDir}/Common/_bin/
-# 	FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-# 	DESTINATION ${TargetInstallBindir}
-# )
-
 if(${TARGET_SYSTEM} STREQUAL "linux-x64")
 	install(PROGRAMS
 		${GeneratedFiles}/Arteranos-Server-Start
@@ -198,11 +209,11 @@ if(${TARGET_SYSTEM} STREQUAL "linux-x64")
 		DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/init.d
 	)
 else()
-	set_property(INSTALL ${TargetInstallBindir}/${MainExeName}
-		PROPERTY CPACK_START_MENU_SHORTCUTS "Arteranos"
-	)
+	# set_property(INSTALL ${TargetInstallBindir}/${MainExeName}
+	# 	PROPERTY CPACK_START_MENU_SHORTCUTS "Arteranos"
+	# )
 
-	set_property(INSTALL ${TargetInstallBindir}/${MainExeName}
-		PROPERTY CPACK_DESKTOP_SHORTCUTS "Arteranos"
-	)
+	# set_property(INSTALL ${TargetInstallBindir}/${MainExeName}
+	# 	PROPERTY CPACK_DESKTOP_SHORTCUTS "Arteranos"
+	# )
 endif()
