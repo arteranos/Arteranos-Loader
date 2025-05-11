@@ -1,0 +1,6 @@
+; Fragment to be configured and read into to 
+; CPACK_NSIS_EXTRA_INSTALL_COMMANDS
+
+ExecWait 'netsh advfirewall firewall add rule name=ArteranosDesktop dir=in action=allow program="$COMMONPROGRAMDATA\arteranos\arteranos\desktop-Win-amd64\Arteranos.exe" enable=yes profile=public,private'
+ExecWait 'netsh advfirewall firewall add rule name=ArteranosServer dir=in action=allow program="$COMMONPROGRAMDATA\arteranos\arteranos\server-Win-amd64\Arteranos-Server.exe" enable=yes profile=public,private'
+ExecWait 'netsh advfirewall firewall add rule name=ArteranosIPFS dir=in action=allow program="$COMMONPROGRAMDATA\arteranos\arteranos\ipfs.exe" enable=yes profile=public,private'

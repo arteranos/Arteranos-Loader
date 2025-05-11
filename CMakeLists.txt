@@ -8,6 +8,8 @@ set(SolutionRoot ${CMAKE_SOURCE_DIR})
 set(SetupDataDir ${CMAKE_SOURCE_DIR}/Setup)
 set(GeneratedFiles ${CMAKE_BINARY_DIR}/Generated)
 
+file(MAKE_DIRECTORY ${GeneratedFiles})
+
 message(STATUS "Source dir   : ${CMAKE_SOURCE_DIR}")
 message(STATUS "Binary dir   : ${CMAKE_BINARY_DIR}")
 message(STATUS "OS           : ${CMAKE_SYSTEM_NAME}")
@@ -71,6 +73,8 @@ add_custom_target(LoaderExe
 
 ################## Install configuration #################################
 
+set(CPACK_PACKAGING_INSTALL_PREFIX "/")
+
 set(CMAKE_PROJECT_HOMEPAGE_URL "https://github.com/arteranos/Arteranos-Loader")
 
 set(CPACK_PACKAGE_VENDOR "arteranos")
@@ -78,45 +82,9 @@ set(CPACK_PACKAGE_CONTACT "arteranos")
 set(CPACK_PACKAGE_DESCRIPTION "This is the Arteranos Loader, to download, update and start Arteranos.")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Arteranos Loader")
 
-set(CPACK_PACKAGING_INSTALL_PREFIX "/")
-
-set(CPACK_DEBIAN_PACKAGE_SECTION "games")
-set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA ${GeneratedFiles}/postinst;${GeneratedFiles}/prerm)
-set(CPACK_DEBIAN_PACKAGE_DEPENDS
-	dotnet8
-)
+set(CPACK_PACKAGE_INSTALL_DIRECTORY "Arteranos")
 
 set(CPACK_RESOURCE_FILE_LICENSE ${SetupDataDir}/Windows/SetupLicense.rtf)
-
-set(CPACK_NSIS_MUI_ICON ${SetupDataDir}/Windows/Arteranos.ico)
-set(CPACK_NSIS_INSTALLED_ICON_NAME ${SetupDataDir}/Windows/Arteranos.ico)
-
-# CPack-NSIS-generator disregards the CPACK_* target properties, so we have to add the extra lines directly into the generated .nsi script.
-string(JOIN "\n" CPACK_NSIS_CREATE_ICONS_EXTRA
-	"CreateShortCut '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\Arteranos.lnk' '$INSTDIR\\\\bin\\\\${LoaderExeName}'"
-	"CreateShortCut '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\Arteranos Dedicated Server.lnk' '$INSTDIR\\\\bin\\\\${LoaderExeName}' '--server'"
-)
-
-string(JOIN "\n" CPACK_NSIS_DELETE_ICONS_EXTRA
-	"Delete '$SMPROGRAMS\\\\$START_MENU\\\\Arteranos.lnk'"
-	"Delete '$SMPROGRAMS\\\\$START_MENU\\\\Arteranos Dedicated Server.lnk'"
-)
-
-
-# set(CPACK_WIX_UPGRADE_GUID "FB5A017C-2AFC-4C8B-BC97-47787B42B6CB")
-# set(CPACK_WIX_PROGRAM_MENU_FOLDER "Arteranos")
-# set(CPACK_WIX_TEMPLATE ${SetupDataDir}/Windows/WIX.template.in)
-# set(CPACK_WIX_INSTALL_SCOPE "perMachine")
-
-# set(CPACK_WIX_PRODUCT_ICON ${SetupDataDir}/Windows/Arteranos.ico)
-# set(CPACK_WIX_LICENSE_RTF ${SetupDataDir}/Windows/SetupLicense.rtf)
-# set(CPACK_WIX_UI_BANNER ${SetupDataDir}/Windows/banner.bmp)
-# set(CPACK_WIX_UI_DIALOG ${SetupDataDir}/Windows/Dialog.bmp)
-# set(CPACK_WIX_EXTRA_SOURCES 
-# 	${SetupDataDir}/Windows/WIX.fwrules.wxs
-# 	${SetupDataDir}/Windows/WIX.moreShortcuts.wxs
-# )
-# set(CPACK_WIX_EXTENSIONS WixFirewallExtension)
 
 # Override package file name to denote the _target_ architecture, not the build system
 if(${TARGET_SYSTEM} STREQUAL "linux-x64")
@@ -124,11 +92,52 @@ if(${TARGET_SYSTEM} STREQUAL "linux-x64")
 	set(CPACK_GENERATOR "DEB")
 
 	set(CPACK_PACKAGE_FILE_NAME ${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-Linux64)
+
+	set(CPACK_DEBIAN_PACKAGE_SECTION "games")
+	set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA ${GeneratedFiles}/postinst;${GeneratedFiles}/prerm)
+	set(CPACK_DEBIAN_PACKAGE_DEPENDS
+		dotnet8
+	)
 elseif(${TARGET_SYSTEM} STREQUAL "win-x64")
 	set(CPACK_PACKAGE_NAME "Arteranos")
 	set(CPACK_GENERATOR "NSIS")
 
 	set(CPACK_PACKAGE_FILE_NAME ${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-Win64)
+
+#	set(CPACK_NSIS_MUI_HEADERIMAGE ${SetupDataDir}/Windows/banner.bmp)
+	set(CPACK_NSIS_MUI_WELCOMEFINISHPAGE_BITMAP ${SetupDataDir}/Windows/Dialog.bmp)
+	set(CPACK_NSIS_MUI_ICON ${SetupDataDir}/Windows/Arteranos.ico)
+	set(CPACK_NSIS_INSTALLED_ICON_NAME ${SetupDataDir}/Windows/Arteranos.ico)
+
+	# CPack-NSIS-generator disregards the CPACK_* target properties, so we have to add the extra lines directly into the generated .nsi script.
+	string(JOIN "\n" CPACK_NSIS_CREATE_ICONS_EXTRA
+		"CreateShortCut '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\Arteranos.lnk' '$INSTDIR\\\\bin\\\\${LoaderExeName}'"
+		"CreateShortCut '$SMPROGRAMS\\\\$STARTMENU_FOLDER\\\\Arteranos Dedicated Server.lnk' '$INSTDIR\\\\bin\\\\${LoaderExeName}' '--server'"
+	)
+
+	string(JOIN "\n" CPACK_NSIS_DELETE_ICONS_EXTRA
+		"Delete '$SMPROGRAMS\\\\$START_MENU\\\\Arteranos.lnk'"
+		"Delete '$SMPROGRAMS\\\\$START_MENU\\\\Arteranos Dedicated Server.lnk'"
+	)
+
+	configure_file(
+		${SetupDataDir}/Windows/NSIS.addFwRules.nsi.in
+		${GeneratedFiles}/NSIS.addFwRules.nsi
+		FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+		@ONLY
+		NEWLINE_STYLE LF
+	)
+	file(READ ${GeneratedFiles}/NSIS.addFwRules.nsi CPACK_NSIS_EXTRA_INSTALL_COMMANDS)
+
+	configure_file(
+		${SetupDataDir}/Windows/NSIS.rmFwRules.nsi.in
+		${GeneratedFiles}/NSIS.rmFwRules.nsi
+		FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+		@ONLY
+		NEWLINE_STYLE LF
+	)
+	file(READ ${GeneratedFiles}/NSIS.rmFwRules.nsi CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS)
+
 else()
 	message(FATAL_ERROR "Unsupported installer generator for target architecture")
 endif()
@@ -147,8 +156,6 @@ include(GNUInstallDirs)
 set(TargetLibexecDir	${CMAKE_INSTALL_LIBEXECDIR}/arteranos)
 set(MainExeName ${LoaderExeName})
 set(MainExePath /${TargetLibexecDir}/${MainExeName})
-
-file(MAKE_DIRECTORY ${GeneratedFiles})
 
 configure_file(
 	${SetupDataDir}/Linux/Arteranos-Server-Start.in

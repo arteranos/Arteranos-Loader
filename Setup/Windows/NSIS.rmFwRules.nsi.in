@@ -1,0 +1,6 @@
+; Fragment to be configured and read into to 
+; CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS
+
+ExecWait 'netsh advfirewall firewall delete rule name=ArteranosDesktop'
+ExecWait 'netsh advfirewall firewall delete rule name=ArteranosServer'
+ExecWait 'netsh advfirewall firewall delete rule name=ArteranosIPFS'
