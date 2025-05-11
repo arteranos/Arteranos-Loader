@@ -49,45 +49,54 @@ public class Core
 
     private async Task StartupAsync(IProgressReporter reporter)
     {
-        splash = reporter;
-
-        reporter.ProgressTxt = "Initializing..";
-
-        Initialize0();
-
-        HttpClient httpClient = new()
+        try
         {
-            Timeout = TimeSpan.FromSeconds(60)
-        };
+            splash = reporter;
 
-        WebDownload = new(httpClient, reporter);
+            reporter.ProgressTxt = "Initializing..";
 
-        await WebDownloadBootstrap();
+            Initialize0();
 
-        Initialize();
+            HttpClient httpClient = new()
+            {
+                Timeout = TimeSpan.FromSeconds(60)
+            };
 
-        IPFSConnection = new(this);
+            WebDownload = new(httpClient, reporter);
 
-        await WebDownloadIPFSExe();
+            await WebDownloadBootstrap();
 
-        await WebDownloadArteranos();
+            Initialize();
 
-        await StartArteranosIPFS();
+            IPFSConnection = new(this);
 
-        await GatherLocalFiles();
+            await WebDownloadIPFSExe();
 
-        await GatherRemoteFiles();
+            await WebDownloadArteranos();
 
-        CompareFiles();
+            await StartArteranosIPFS();
 
-        await DownloadFromIPFS();
+            await GatherLocalFiles();
 
-        WriteHashCacheFile();
+            await GatherRemoteFiles();
 
-        StartArteranos();
+            CompareFiles();
 
-        // Do some background stuff here.
-        await Task.Delay(3000);
+            await DownloadFromIPFS();
+
+            WriteHashCacheFile();
+
+            StartArteranos();
+
+            // Do some background stuff here.
+            await Task.Delay(3000);
+        }
+        catch (System.Exception ex)
+        {
+            reporter.ProgressTxt = $"Loader failed: ${ex.Message}";
+            await Task.Delay(5000);
+            throw;
+        }
     }
 
     // ---------------------------------------------------------------
@@ -431,17 +440,25 @@ public class Core
 
     private async Task GatherRemoteFiles()
     {
-        splash.ProgressTxt = "Listing remote files...";
+        try
+        {
+            splash.ProgressTxt = "Listing remote files...";
 
-        string name = $"{BootstrapData.IPFSDeployDir}/{ArteranosRoot}-FileList.json";
-        string rootCid = await IPFSConnection.Ipfs.ResolveAsync(name);
+            string name = $"{BootstrapData.IPFSDeployDir}/{ArteranosRoot}-FileList.json";
+            string rootCid = await IPFSConnection.Ipfs.ResolveAsync(name);
 
-        if (rootCid.StartsWith("/ipfs/")) rootCid = rootCid[6..];
+            if (rootCid.StartsWith("/ipfs/")) rootCid = rootCid[6..];
 
-        string json = await IPFSConnection.Ipfs.FileSystem.ReadAllTextAsync(rootCid);
-        RemoteFileList = JsonConvert.DeserializeObject<List<FileEntry>>(json);
+            string json = await IPFSConnection.Ipfs.FileSystem.ReadAllTextAsync(rootCid);
+            RemoteFileList = JsonConvert.DeserializeObject<List<FileEntry>>(json);
 
-        splash.Progress = 60;
+            splash.Progress = 60;
+        }
+        catch (System.Exception ex)
+        {
+            splash.ProgressTxt = $"Cannot list remote files: {ex.Message}";
+            throw;
+        }
     }
 
     private int toDownloadFiles = 0;
