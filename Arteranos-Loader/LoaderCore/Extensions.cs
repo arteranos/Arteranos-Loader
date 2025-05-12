@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
 using System.Threading;
@@ -68,5 +69,23 @@ public static class HttpClientExtensions
         // Use extension method to report progress while downloading
         await download.CopyToAsync(destination, 81920, actual => progress?.Invoke(actual, contentLength.Value), cancellationToken);
         progress?.Invoke(contentLength.Value, contentLength.Value);
+    }
+}
+
+public static class ListExtensions
+{
+    public static void Shuffle<T>(this List<T> list)
+    {
+        Random random = new Random();
+        int n = list.Count;
+
+        // Start from the end and swap elements with a random one
+        for (int i = n - 1; i > 0; i--)
+        {
+            int j = random.Next(0, i + 1);
+            T temp = list[i];
+            list[i] = list[j];
+            list[j] = temp;
+        }
     }
 }

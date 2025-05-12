@@ -1,10 +1,12 @@
 ﻿using Ipfs;
 using Ipfs.Cryptography.Proto;
 using Ipfs.Http;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 
 
@@ -39,6 +41,7 @@ namespace ArteranosLoader.LoaderCore
         private bool? _RepoExists = null;
         private bool? _DaemonRunning = null;
         private int? APIPort = null;
+        private int? IPFSPort = null;
 
         public IPFSConnection(Core core)
         {
@@ -214,6 +217,44 @@ namespace ArteranosLoader.LoaderCore
             return port;
         }
 
+        public int GetIPFSPort()
+        {
+            if(IPFSPort != null) return IPFSPort.Value;
+
+            if (CheckRepository(false) != Status.OK) return -1;
+
+            using Stream s = File.OpenRead(Path.Combine(RepoDir ?? string.Empty, "config"));
+            using StreamReader sr = new(s);
+            string json = sr.ReadToEnd();
+
+            // Even if the repository is valid, no sense to have an IPFS node with no connections.
+            try
+            {
+                JObject c = JObject.Parse(json);
+                JToken addresses = c["Addresses"] ?? throw new InvalidDataException();
+                JToken swarm = addresses["Swarm"] ?? throw new InvalidDataException();
+                JToken entry = swarm.First ?? throw new InvalidDataException();
+
+                string addr = ((string?) entry) ?? throw new InvalidDataException();
+
+                MultiAddress address = new(addr);
+                int port = -1;
+
+                foreach (NetworkProtocol protocol in address.Protocols)
+                    if (protocol.Code == 6)
+                    {
+                        port = int.Parse(protocol.Value);
+                        break;
+                    }
+
+                return port;
+            }
+            catch (System.Exception)
+            {                
+                throw new InvalidDataException("Invalid/corrupted repo config, no connections");
+            }
+        }
+
         public async Task<Status> CheckAPIConnection(int attempts, bool verify = true)
         {
             int port = GetAPIPort();
@@ -287,10 +328,44 @@ namespace ArteranosLoader.LoaderCore
 
             // Reset detection data in lieu of the changed settings
             APIPort = null;
+            IPFSPort = null;
             _RepoExists = null;
             Ipfs = null;
             _IPFSAccessible = null;
             _RepoExists = null;
+        }
+
+        /// <summary>
+        /// Configure IPFS's Announce to add the external IP address to mitigate
+        /// borky NAT configuration.
+        /// </summary>
+        /// <param name="IPv4Address">The IPv4 address, or null if not available</param>
+        public void SetExternalIPAddress(string? IPv4Address)
+        {
+            if(IPv4Address == null)
+            {
+                ProcessStartInfo psi = BuildDaemonCommand($"config Addresses.AppendAnnounce []");
+                _ = RunDaemonCommand(psi, true);
+
+                psi = BuildDaemonCommand($"config X-Arteranos.ExternalIPv4Address null");
+                _ = RunDaemonCommand(psi, true);
+            }
+            else
+            {
+                int port = GetIPFSPort();
+
+                ProcessStartInfo psi = BuildDaemonCommand($"config --json Addresses.AppendAnnounce " +
+                    $"\"[ " +
+                    $"  \\\"/ip4/{IPv4Address}/tcp/{port}\\\", " +
+                    $"  \\\"/ip4/{IPv4Address}/udp/{port}/webrtc-direct\\\", " +
+                    $"  \\\"/ip4/{IPv4Address}/udp/{port}/quic-v1\\\", " +
+                    $"  \\\"/ip4/{IPv4Address}/udp/{port}/quic-v1/webtransport\\\" " +
+                    $"]\"");
+                _ = RunDaemonCommand(psi, true);
+
+                psi = BuildDaemonCommand($"config X-Arteranos.ExternalIPv4Address ${IPv4Address}");
+                _ = RunDaemonCommand(psi, true);
+            }
         }
     }
 }

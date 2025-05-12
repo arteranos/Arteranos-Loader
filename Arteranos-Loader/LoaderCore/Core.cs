@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using Ipfs;
 using Ipfs.CoreApi;
 using System.Diagnostics;
+using System.Net;
 
 namespace ArteranosLoader.LoaderCore;
 
@@ -41,6 +42,7 @@ public class Core
     private string ipfsArchiveSource = string.Empty;
     private string ipfsExeInArchive = string.Empty;
     private string osArchitecture = string.Empty;
+    private IPAddress? externalIPAddress = null;
     private IPFSConnection? IPFSConnection = null;
 
     private WebDownload? WebDownload;
@@ -56,6 +58,13 @@ public class Core
             reporter.ProgressTxt = "Initializing..";
 
             Initialize0();
+
+            externalIPAddress = await Networking.GetExternalIPAddress();
+
+            Console.WriteLine(externalIPAddress == null
+                ? "Cannot determine external IPv4 address"
+                : $"External IP address is {externalIPAddress}"
+            );
 
             HttpClient httpClient = new()
             {
@@ -339,6 +348,9 @@ public class Core
         if (res != IPFSConnection.Status.OK)
             throw new InvalidOperationException($"Cannot add Prime and Deploy bootstrap multiaddr: {res}");
 
+        // Set (or update) the external IPv4 address as seen
+        IPFSConnection.SetExternalIPAddress(externalIPAddress.ToString());
+
         // Starts the daemon, safe to start on top of another instance, and
         // fails to start if there's a port squatter.
         _ = IPFSConnection.StartDaemon(false);
@@ -360,6 +372,9 @@ public class Core
             await Task.Delay(5000);
 
             IPFSConnection.ReconfigurePorts(apiPort, ipfsPort);
+
+            // Multiaddress entries have both the addresses and ports, so we have to update them, too.
+            IPFSConnection.SetExternalIPAddress(externalIPAddress.ToString());
 
             // Start the daemon anew, and see if we're okay.
             IPFSConnection.StartDaemon(true);
@@ -435,21 +450,25 @@ public class Core
             }
         }
 
-        splash.Progress = 55;
+        splash.Progress = 53;
     }
 
     private async Task GatherRemoteFiles()
     {
         try
         {
-            splash.ProgressTxt = "Listing remote files...";
+            splash.ProgressTxt = "Looking up remote file list...";
 
-            string name = $"{BootstrapData.IPFSDeployDir}/{ArteranosRoot}-FileList.json";
-            string rootCid = await IPFSConnection.Ipfs.ResolveAsync(name);
+            string rootCid = await IPFSConnection.Ipfs.ResolveAsync(BootstrapData.IPFSDeployDir);
 
             if (rootCid.StartsWith("/ipfs/")) rootCid = rootCid[6..];
 
-            string json = await IPFSConnection.Ipfs.FileSystem.ReadAllTextAsync(rootCid);
+            splash.ProgressTxt = "Reading remote files...";
+            
+            splash.Progress = 58;
+
+            string json = await IPFSConnection.Ipfs.FileSystem.ReadAllTextAsync($"{rootCid}/{ArteranosRoot}-FileList.json");
+
             RemoteFileList = JsonConvert.DeserializeObject<List<FileEntry>>(json);
 
             splash.Progress = 60;
