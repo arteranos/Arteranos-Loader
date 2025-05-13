@@ -344,10 +344,10 @@ namespace ArteranosLoader.LoaderCore
         {
             if(IPv4Address == null)
             {
-                ProcessStartInfo psi = BuildDaemonCommand($"config Addresses.AppendAnnounce []");
+                ProcessStartInfo psi = BuildDaemonCommand($"config --json Addresses.AppendAnnounce []");
                 _ = RunDaemonCommand(psi, true);
 
-                psi = BuildDaemonCommand($"config X-Arteranos.ExternalIPv4Address null");
+                psi = BuildDaemonCommand($"config --json X-Arteranos.ExternalIPv4Address null");
                 _ = RunDaemonCommand(psi, true);
             }
             else
@@ -363,7 +363,7 @@ namespace ArteranosLoader.LoaderCore
                     $"]\"");
                 _ = RunDaemonCommand(psi, true);
 
-                psi = BuildDaemonCommand($"config X-Arteranos.ExternalIPv4Address ${IPv4Address}");
+                psi = BuildDaemonCommand($"config X-Arteranos.ExternalIPv4Address {IPv4Address}");
                 _ = RunDaemonCommand(psi, true);
             }
         }
