@@ -2,7 +2,7 @@
 
 project ("Setup")
 
-set(CPACK_PACKAGE_VERSION 0.9.0)
+set(CPACK_PACKAGE_VERSION 0.10.0)
 
 set(SolutionRoot ${CMAKE_SOURCE_DIR})
 set(SetupDataDir ${CMAKE_SOURCE_DIR}/Setup)
@@ -96,7 +96,7 @@ if(${TARGET_SYSTEM} STREQUAL "linux-x64")
 	set(CPACK_DEBIAN_PACKAGE_SECTION "games")
 	set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA ${GeneratedFiles}/postinst;${GeneratedFiles}/prerm)
 	set(CPACK_DEBIAN_PACKAGE_DEPENDS
-		dotnet8
+		dotnet-runtime-8.0
 	)
 elseif(${TARGET_SYSTEM} STREQUAL "win-x64")
 	set(CPACK_PACKAGE_NAME "Arteranos")
