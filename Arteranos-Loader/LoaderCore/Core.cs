@@ -100,11 +100,10 @@ public class Core
             // Do some background stuff here.
             await Task.Delay(3000);
         }
-        catch (System.Exception ex)
+        catch (Exception ex)
         {
-            reporter.ProgressTxt = $"Loader failed: ${ex.Message}";
-            await Task.Delay(5000);
-            throw;
+            reporter.ProgressTxt = $"{ex.Message}";
+            await Task.Delay(10000);
         }
     }
 
@@ -299,7 +298,9 @@ public class Core
         catch (Exception ex)
         {
             Console.WriteLine($"Cannot web download {arteranosURL}: {ex.Message}");
-            Console.WriteLine("Will resort to using IPFS.");
+
+            splash.ProgressTxt = $"'{ArteranosRoot}' is unavailable";
+            throw new Exception(splash.ProgressTxt);
         }
         finally
         {
@@ -386,7 +387,7 @@ public class Core
         splash.Progress = 50;
     }
     #endregion
-
+    // ---------------------------------------------------------------
     #region Patch via IPFS
 
     private List<FileEntry>? LocalFileList = null;

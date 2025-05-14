@@ -2,7 +2,7 @@
 
 project ("Setup")
 
-set(CPACK_PACKAGE_VERSION 0.10.0)
+set(CPACK_PACKAGE_VERSION 0.11.0)
 
 set(SolutionRoot ${CMAKE_SOURCE_DIR})
 set(SetupDataDir ${CMAKE_SOURCE_DIR}/Setup)
