@@ -13,6 +13,8 @@ class Program
 {
     public static Func<IProgressReporter, Task>? Loader { get; private set; } = null;
     public static bool Server { get; private set; } = false;
+    public static bool NoStartup { get; private set; } = false;
+    public static bool NoUpdate { get; private set; } = false;
     public static List<string> Extra { get; private set; } = [];
 
     private static bool _quiet = false;
@@ -54,6 +56,8 @@ class Program
         {
             { "q|quiet", "No splash/loading progress window", q => _quiet = q != null },
             { "s|server", "Run the dedicated server, implies -q", s => Server = s != null },
+            { "no-startup", "Don't start", n => NoStartup = n != null },
+            { "no-update", "Don't update", n => NoUpdate = n != null },
             { "h|help", "This text :)", h => _showHelp = h != null }
         };
 

@@ -81,21 +81,27 @@ public class Core
 
             await WebDownloadIPFSExe();
 
-            await WebDownloadArteranos();
-
             await StartArteranosIPFS();
 
-            await GatherLocalFiles();
+            if (!Program.NoUpdate)
+            {
+                await WebDownloadArteranos();
 
-            await GatherRemoteFiles();
+                await GatherLocalFiles();
 
-            CompareFiles();
+                await GatherRemoteFiles();
 
-            await DownloadFromIPFS();
+                CompareFiles();
 
-            WriteHashCacheFile();
+                await DownloadFromIPFS();
 
-            StartArteranos();
+                WriteHashCacheFile();
+            }
+
+            if (!Program.NoStartup)
+            {
+                StartArteranos();
+            }
 
             // Do some background stuff here.
             await Task.Delay(3000);
@@ -172,8 +178,25 @@ public class Core
         ArteranosDir = $"{ProgDataDir}/{ArteranosRoot}";
         CacheFileName = $"{ArteranosDir}-Cache.json";
 
+        string ArteranosExeFile =
+            (ArteranosFlavor == "desktop"
+                ? "Arteranos"
+                : "Arteranos-Server")
+            + (IsOnLinux
+                ? ""
+                : ".exe");
+        ArteranosExePath = $"{ArteranosDir}/{ArteranosExeFile}";
 
-        Console.WriteLine($"Program Dir: {ProgDataDir}");
+        PersistentDataPath = persistentDataPathRoot + $"/{AUTHORNAME}/Arteranos" +
+            (ArteranosFlavor == "desktop"
+                ? string.Empty
+                : "_DedicatedServer");
+
+
+
+        Console.WriteLine($"Program Dir        : {ProgDataDir}");
+        Console.WriteLine($"Arteranos Exe path : {ArteranosExePath}");
+        Console.WriteLine($"User data path     : {PersistentDataPath}");
     }
 
 
@@ -265,23 +288,7 @@ public class Core
 
         string arteranosArchiveFile = $"{ProgDataDir}/{ArteranosRoot}.tar.gz";
 
-        string ArteranosExeFile =
-            (ArteranosFlavor == "desktop"
-                ? "Arteranos"
-                : "Arteranos-Server")
-            + (IsOnLinux
-                ? ""
-                : ".exe");
-        ArteranosExePath = $"{ArteranosDir}/{ArteranosExeFile}";
-
-        PersistentDataPath = persistentDataPathRoot + $"/{AUTHORNAME}/Arteranos" +
-            (ArteranosFlavor == "desktop"
-                ? string.Empty
-                : "_DedicatedServer");
-
         Console.WriteLine($"Archive File       : {arteranosArchiveFile}");
-        Console.WriteLine($"Arteranos Exe path : {ArteranosExePath}");
-        Console.WriteLine($"User data path     : {PersistentDataPath}");
 
         if (Directory.Exists(ArteranosDir)) return;
 
@@ -305,7 +312,7 @@ public class Core
         finally
         {
             if (File.Exists(arteranosArchiveFile)) File.Delete(arteranosArchiveFile);
-            splash.Progress = 40;
+            splash.Progress = 50;
         }
     }
 
